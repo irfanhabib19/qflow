@@ -1,0 +1,470 @@
+/* ==========================================
+   RESET
+========================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+
+/* ==========================================
+   BODY
+========================================== */
+
+body {
+    margin: 0;
+    background: #0f0f0f;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+
+/* ==========================================
+   MAIN CONTAINER
+========================================== */
+
+.container {
+    width: 1000px;
+    max-width: 95%;
+    margin: 30px auto;
+}
+
+
+/* ==========================================
+   HEADER
+========================================== */
+
+header {
+    margin-bottom: 25px;
+}
+
+h1 {
+    color: #00e5ff;
+    margin: 0 0 15px;
+    font-size: 30px;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+
+/* ==========================================
+   STATUS
+========================================== */
+
+.status {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.connected {
+    background: #00c853;
+}
+
+.disconnected {
+    background: #d32f2f;
+}
+
+
+/* ==========================================
+   CARD
+========================================== */
+
+.card {
+    background: #1e1e1e;
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+
+/* ==========================================
+   QUEUE LIST
+========================================== */
+
+.queue-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+
+/* ==========================================
+   QUEUE CARD
+========================================== */
+
+.queue-card {
+    background: #1e1e1e;
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid #333;
+    transition: transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.queue-card:hover {
+    transform: translateY(-2px);
+    border-color: #00e5ff;
+}
+
+
+/* ==========================================
+   QUEUE HEADER
+========================================== */
+
+.queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.queue-header h3 {
+    margin: 0 0 10px;
+    color: #00e5ff;
+    font-size: 20px;
+}
+
+.queue-name {
+    margin: 5px 0;
+    font-weight: bold;
+    color: white;
+}
+
+.queue-description {
+    margin: 5px 0;
+    color: #aaa;
+    font-size: 14px;
+}
+
+
+/* ==========================================
+   QUEUE STATUS
+========================================== */
+
+.queue-status {
+    padding: 7px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+
+/* OPEN */
+
+.queue-status.open {
+    background: #00c853;
+    color: white;
+}
+
+
+/* PAUSED */
+
+.queue-status.paused {
+    background: #7b1fa2;
+    color: white;
+}
+
+
+/* CLOSED */
+
+.queue-status.closed {
+    background: #d32f2f;
+    color: white;
+}
+
+
+/* UNKNOWN */
+
+.queue-status.unknown {
+    background: #555;
+    color: white;
+}
+
+
+/* ==========================================
+   QUEUE INFO
+========================================== */
+
+.queue-info {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+
+
+/* ==========================================
+   INFO BOX
+========================================== */
+
+.info-box {
+    background: #292929;
+    padding: 14px;
+    border-radius: 7px;
+}
+
+.info-box span {
+    display: block;
+    color: #aaa;
+    font-size: 12px;
+    margin-bottom: 7px;
+}
+
+.info-box strong {
+    display: block;
+    color: white;
+    font-size: 20px;
+}
+
+
+/* ==========================================
+   QUEUE ACTIONS
+========================================== */
+
+.queue-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+
+/* ==========================================
+   BUTTONS
+========================================== */
+
+button {
+    border: none;
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s ease,
+    transform 0.1s ease;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+
+/* ==========================================
+   OPEN BUTTON
+========================================== */
+
+.open-btn {
+    background: #2979ff;
+}
+
+
+/* ==========================================
+   PAUSE BUTTON
+========================================== */
+
+.pause-btn {
+    background: #7b1fa2;
+}
+
+
+/* ==========================================
+   RESUME BUTTON
+========================================== */
+
+.resume-btn {
+    background: #00c853;
+}
+
+
+/* ==========================================
+   CLOSE BUTTON
+========================================== */
+
+.close-btn {
+    background: #d32f2f;
+}
+
+
+/* ==========================================
+   ERROR
+========================================== */
+
+.error {
+    background: #2b1515;
+    border: 1px solid #d32f2f;
+    border-radius: 8px;
+    padding: 20px;
+    color: #ff6b6b;
+}
+
+.error h3 {
+    margin-top: 0;
+}
+
+.error button {
+    margin-top: 10px;
+    background: #2979ff;
+}
+
+
+/* ==========================================
+   EMPTY
+========================================== */
+
+.empty {
+    background: #292929;
+    padding: 25px;
+    border-radius: 8px;
+    text-align: center;
+    color: #aaa;
+}
+
+
+/* ==========================================
+   NOW SERVING
+========================================== */
+
+.now-serving {
+    margin-top: 25px;
+    background: #292929;
+    padding: 25px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.now-serving span {
+    display: block;
+    color: #aaa;
+    margin-bottom: 10px;
+}
+
+.now-serving strong {
+    font-size: 60px;
+    color: #00e5ff;
+}
+
+
+/* ==========================================
+   STATS
+========================================== */
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.stat-box {
+    background: #292929;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.stat-box span {
+    display: block;
+    color: #aaa;
+    font-size: 13px;
+}
+
+.stat-box strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 28px;
+}
+
+
+/* ==========================================
+   CONTROLS
+========================================== */
+
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+
+/* ==========================================
+   EVENTS
+========================================== */
+
+#eventLog {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 15px;
+    min-height: 200px;
+    max-height: 350px;
+    overflow-y: auto;
+
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+}
+
+
+/* ==========================================
+   HIDDEN
+========================================== */
+
+.hidden {
+    display: none;
+}
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 800px) {
+
+    .queue-list {
+        grid-template-columns: 1fr;
+    }
+
+    .queue-info {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+
+/* ==========================================
+   SMALL MOBILE
+========================================== */
+
+@media (max-width: 500px) {
+
+    .container {
+        max-width: 94%;
+        margin: 20px auto;
+    }
+
+    .queue-header {
+        flex-direction: column;
+    }
+
+    .queue-info {
+        grid-template-columns: 1fr;
+    }
+
+    .queue-actions {
+        flex-direction: column;
+    }
+
+    .queue-actions button {
+        width: 100%;
+    }
+
+}

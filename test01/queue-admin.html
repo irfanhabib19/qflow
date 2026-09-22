@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>QFlow Admin Queue</title>
+
+    <link
+            rel="stylesheet"
+            href="css/admin.css"
+    >
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+    <!-- =====================================
+         HEADER
+    ====================================== -->
+
+    <header>
+
+        <h1>
+            🔥 QFlow Admin
+        </h1>
+
+        <div
+                id="connectionStatus"
+                class="status disconnected"
+        >
+            🔴 Disconnected
+        </div>
+
+    </header>
+
+
+    <!-- =====================================
+         QUEUE INFORMATION
+    ====================================== -->
+
+    <section class="card">
+
+        <h3>
+            Queue
+        </h3>
+
+        <h2 id="queueName">
+            Loading...
+        </h2>
+
+        <p id="queueDescription">
+            Loading queue...
+        </p>
+
+        <span
+                id="queueStatus"
+                class="queue-status"
+        >
+            -
+        </span>
+
+    </section>
+
+
+    <!-- =====================================
+         NOW SERVING
+    ====================================== -->
+
+    <section class="card">
+
+        <h3>
+            NOW SERVING
+        </h3>
+
+        <div
+                id="nowServing"
+                class="now-serving"
+        >
+            -
+        </div>
+
+    </section>
+
+
+    <!-- =====================================
+         QUEUE STATISTICS
+    ====================================== -->
+
+    <section class="card">
+
+        <h2>
+            Queue Statistics
+        </h2>
+
+        <div class="stats">
+
+
+            <!-- CURRENT NUMBER -->
+
+            <div class="stat-box">
+
+                <span>
+                    Current Number
+                </span>
+
+                <strong id="currentNumber">
+                    0
+                </strong>
+
+            </div>
+
+
+            <!-- LAST TICKET -->
+
+            <div class="stat-box">
+
+                <span>
+                    Last Ticket
+                </span>
+
+                <strong id="lastNumber">
+                    0
+                </strong>
+
+            </div>
+
+
+            <!-- WAITING -->
+
+            <div class="stat-box">
+
+                <span>
+                    Waiting
+                </span>
+
+                <strong id="waitingCount">
+                    0
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================
+         QUEUE CONTROLS
+    ====================================== -->
+
+    <section class="card">
+
+        <h2>
+            Queue Controls
+        </h2>
+
+        <div class="controls">
+
+
+            <!-- CALL NEXT -->
+
+            <button
+                    id="callNextBtn"
+                    class="call-btn"
+            >
+                📢 Call Next
+            </button>
+
+
+            <!-- PAUSE -->
+
+            <button
+                    id="pauseBtn"
+                    class="pause-btn"
+            >
+                ⏸️ Pause Queue
+            </button>
+
+
+            <!-- RESUME -->
+
+            <button
+                    id="resumeBtn"
+                    class="resume-btn"
+            >
+                ▶️ Resume Queue
+            </button>
+
+
+            <!-- CLOSE -->
+
+            <button
+                    id="closeBtn"
+                    class="close-btn"
+            >
+                🔒 Close Queue
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================
+         LIVE EVENTS
+    ====================================== -->
+
+    <section class="card">
+
+        <h2>
+            Live Events
+        </h2>
+
+        <pre id="eventLog"></pre>
+
+    </section>
+
+
+    <!-- =====================================
+         BACK BUTTON
+    ====================================== -->
+
+    <button
+            id="backBtn"
+            class="back-btn"
+    >
+        ← Back to Queues
+    </button>
+
+
+</div>
+
+
+<!-- =========================================
+     STOMP JS
+========================================== -->
+
+<script
+        src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.2.1/bundles/stomp.umd.min.js">
+</script>
+
+
+<!-- =========================================
+     QFLOW ADMIN QUEUE JS
+========================================== -->
+
+<script
+        src="js/queue-admin.js">
+</script>
+
+
+</body>
+
+</html>

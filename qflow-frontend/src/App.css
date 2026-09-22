@@ -1,0 +1,16 @@
+.app {
+  min-height: 100vh;
+  background: #0f0f0f;
+  color: white;
+  padding: 40px;
+  font-family: Arial, sans-serif;
+}
+
+.app h1 {
+  color: #00e5ff;
+  margin: 0 0 15px;
+}
+
+.app p {
+  color: #aaa;
+}

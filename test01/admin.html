@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>QFlow Admin</title>
+
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>🔥 QFlow Admin</h1>
+
+        <div id="connectionStatus" class="status disconnected">
+            🔴 Disconnected
+        </div>
+    </header>
+
+
+    <!-- ========================= -->
+    <!-- QUEUE SELECTION -->
+    <!-- ========================= -->
+
+    <section class="card">
+
+        <h2>Your Queues</h2>
+
+        <div id="queueList" class="queue-list">
+
+            <p>Loading queues...</p>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================= -->
+    <!-- SELECTED QUEUE -->
+    <!-- ========================= -->
+
+    <section id="dashboard" class="card hidden">
+
+        <div class="queue-header">
+
+            <div>
+                <p>Selected Queue</p>
+
+                <h2 id="queueName">
+                    -
+                </h2>
+
+                <span id="queueDescription">
+                    -
+                </span>
+            </div>
+
+            <div id="queueStatus"
+                 class="queue-status">
+                -
+            </div>
+
+        </div>
+
+
+        <!-- NOW SERVING -->
+
+        <div class="now-serving">
+
+            <span>Now Serving</span>
+
+            <strong id="nowServing">
+                -
+            </strong>
+
+        </div>
+
+
+        <!-- QUEUE STATS -->
+
+        <div class="stats">
+
+            <div class="stat-box">
+
+                <span>Current</span>
+
+                <strong id="currentNumber">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="stat-box">
+
+                <span>Last Ticket</span>
+
+                <strong id="lastNumber">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="stat-box">
+
+                <span>Waiting</span>
+
+                <strong id="waitingCount">
+                    -
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- CONTROLS -->
+
+        <div class="controls">
+
+            <button id="callNextBtn"
+                    class="call-btn">
+                📢 Call Next
+            </button>
+
+            <button id="pauseBtn"
+                    class="pause-btn">
+                ⏸ Pause
+            </button>
+
+            <button id="resumeBtn"
+                    class="resume-btn">
+                ▶ Resume
+            </button>
+
+            <button id="closeBtn"
+                    class="close-btn">
+                🔒 Close
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================= -->
+    <!-- LIVE EVENTS -->
+    <!-- ========================= -->
+
+    <section id="eventsCard"
+             class="card hidden">
+
+        <h2>⚡ Live Events</h2>
+
+        <pre id="eventLog"></pre>
+
+    </section>
+
+</div>
+
+
+<!-- STOMP -->
+
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.2.1/bundles/stomp.umd.min.js"></script>
+
+
+<!-- OUR JS -->
+
+<script src="js/admin.js"></script>
+
+</body>
+
+</html>

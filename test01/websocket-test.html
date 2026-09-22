@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>QFlow WebSocket Test</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #0f0f0f;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            color: #00e5ff;
+            margin-bottom: 30px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        #connectBtn {
+            background: #00c853;
+            color: white;
+        }
+
+        #subscribeBtn {
+            background: #2979ff;
+            color: white;
+        }
+
+        #testBtn {
+            background: #ff9100;
+            color: white;
+        }
+
+        #clearBtn {
+            background: #424242;
+            color: white;
+        }
+
+        #status {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: #1e1e1e;
+            border-radius: 6px;
+        }
+
+        #output {
+            background: #181818;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 300px;
+            white-space: pre-line;
+            font-family: Consolas, monospace;
+            font-size: 14px;
+            overflow-y: auto;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<h1>🔥 QFlow WebSocket Test</h1>
+
+<div class="buttons">
+
+    <button id="connectBtn" onclick="connect()">
+        Connect
+    </button>
+
+    <button id="subscribeBtn" onclick="subscribe()">
+        Subscribe Queue 4
+    </button>
+
+    <button id="testBtn" onclick="sendTest()">
+        Send Test
+    </button>
+
+    <button id="clearBtn" onclick="clearOutput()">
+        Clear
+    </button>
+
+</div>
+
+<div id="status">
+    🔴 Disconnected
+</div>
+
+<div id="output"></div>
+
+
+<!-- STOMP Library -->
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.2.1/bundles/stomp.umd.min.js"></script>
+
+
+<script>
+
+    let client = null;
+
+    let subscription = null;
+
+
+    /*
+     * Print message on screen
+     */
+    function log(message) {
+
+        const output =
+            document.getElementById("output");
+
+        output.textContent +=
+            message + "\n";
+
+        output.scrollTop =
+            output.scrollHeight;
+    }
+
+
+    /*
+     * Update connection status
+     */
+    function updateStatus(message) {
+
+        document.getElementById("status")
+            .textContent = message;
+    }
+
+
+    /*
+     * Connect to Spring WebSocket
+     */
+    function connect() {
+
+        if (client && client.connected) {
+
+            log("⚠️ Already connected");
+
+            return;
+        }
+
+
+        log("🔄 Connecting...");
+
+        updateStatus("🟡 Connecting...");
+
+
+        client = new StompJs.Client({
+
+            brokerURL:
+                "ws://localhost:8081/ws",
+
+            reconnectDelay: 5000,
+
+            debug: function (message) {
+
+                console.log(
+                    "[STOMP]",
+                    message
+                );
+
+            },
+
+
+            onConnect: function () {
+
+                log("✅ STOMP CONNECTED");
+
+                updateStatus(
+                    "🟢 Connected"
+                );
+
+            },
+
+
+            onStompError: function (frame) {
+
+                log(
+                    "❌ STOMP ERROR: " +
+                    frame.headers["message"]
+                );
+
+                log(
+                    frame.body
+                );
+
+                updateStatus(
+                    "🔴 STOMP Error"
+                );
+
+            },
+
+
+            onWebSocketError: function (error) {
+
+                console.error(
+                    "WebSocket Error:",
+                    error
+                );
+
+                log(
+                    "❌ WebSocket ERROR"
+                );
+
+                updateStatus(
+                    "🔴 WebSocket Error"
+                );
+
+            },
+
+
+            onWebSocketClose: function () {
+
+                log(
+                    "🔌 WebSocket connection closed"
+                );
+
+                updateStatus(
+                    "🔴 Disconnected"
+                );
+
+            }
+
+        });
+
+
+        client.activate();
+
+    }
+
+
+    /*
+     * Subscribe to Queue 4
+     */
+    function subscribe() {
+
+        if (!client) {
+
+            log(
+                "❌ Connect first"
+            );
+
+            return;
+        }
+
+
+        if (!client.connected) {
+
+            log(
+                "❌ STOMP is not connected"
+            );
+
+            return;
+        }
+
+
+        if (subscription) {
+
+            log(
+                "⚠️ Already subscribed"
+            );
+
+            return;
+        }
+
+
+        subscription =
+            client.subscribe(
+
+                "/topic/queue/4",
+
+                function (message) {
+
+                    log(
+                        "🔥 QFLOW EVENT RECEIVED:"
+                    );
+
+                    log(
+                        message.body
+                    );
+
+                    log(
+                        "-----------------------------"
+                    );
+
+                }
+
+            );
+
+
+        log(
+            "✅ SUBSCRIBED: /topic/queue/4"
+        );
+
+    }
+
+
+    /*
+     * Send test message
+     */
+    function sendTest() {
+
+        if (!client) {
+
+            log(
+                "❌ Connect first"
+            );
+
+            return;
+        }
+
+
+        if (!client.connected) {
+
+            log(
+                "❌ STOMP is not connected"
+            );
+
+            return;
+        }
+
+
+        client.publish({
+
+            destination:
+                "/app/test",
+
+            body:
+                "Hello QFlow WebSocket"
+
+        });
+
+
+        log(
+            "📤 SENT: Hello QFlow WebSocket"
+        );
+
+    }
+
+
+    /*
+     * Clear output
+     */
+    function clearOutput() {
+
+        document.getElementById(
+            "output"
+        ).textContent = "";
+
+    }
+
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,724 @@
+.public-display {
+
+    min-height: 100vh;
+
+    box-sizing: border-box;
+
+    background: #0b0b0b;
+
+    color: white;
+
+    padding: 25px 4%;
+
+}
+
+
+.public-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    border-bottom: 1px solid #292929;
+
+    padding-bottom: 20px;
+
+}
+
+
+.brand {
+
+    color: #00e5ff;
+
+    font-size: 26px;
+
+    font-weight: bold;
+
+}
+
+
+.queue-name {
+
+    margin-top: 5px;
+
+    font-size: 22px;
+
+    font-weight: bold;
+
+}
+
+
+.queue-description {
+
+    margin-top: 3px;
+
+    color: #777;
+
+    font-size: 11px;
+
+}
+
+
+.header-right {
+
+    text-align: right;
+
+}
+
+
+.live-status {
+
+    color: #777;
+
+    font-size: 10px;
+
+    font-weight: bold;
+
+}
+
+
+.live-status.online {
+
+    color: #00c853;
+
+}
+
+
+.clock {
+
+    margin-top: 8px;
+
+    font-size: 25px;
+
+    font-weight: bold;
+
+}
+
+
+.date {
+
+    color: #777;
+
+    font-size: 10px;
+
+}
+
+
+/* =========================================
+   ANNOUNCEMENT
+========================================= */
+
+.announcement {
+
+    margin: 20px auto;
+
+    max-width: 800px;
+
+    padding: 20px;
+
+    text-align: center;
+
+    border: 2px solid #2979ff;
+
+    border-radius: 12px;
+
+    background: #111c31;
+
+    animation: announcementPulse 1s infinite alternate;
+
+}
+
+
+@keyframes announcementPulse {
+
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.02);
+    }
+
+}
+
+
+.announcement-title {
+
+    color: #2979ff;
+
+    font-size: 15px;
+
+    font-weight: bold;
+
+    letter-spacing: 2px;
+
+}
+
+
+.announcement-ticket {
+
+    margin-top: 5px;
+
+    font-size: 55px;
+
+    font-weight: bold;
+
+}
+
+
+.announcement-counter {
+
+    color: #aaa;
+
+    font-size: 14px;
+
+}
+
+
+/* =========================================
+   NOW SERVING
+========================================= */
+
+.now-serving {
+
+    text-align: center;
+
+    padding: 35px 10px;
+
+}
+
+
+.now-serving-label {
+
+    color: #777;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    letter-spacing: 5px;
+
+}
+
+
+.now-serving-ticket {
+
+    margin-top: 8px;
+
+    color: #00e5ff;
+
+    font-size: clamp(
+            80px,
+            13vw,
+            170px
+    );
+
+    font-weight: bold;
+
+    line-height: 1;
+
+}
+
+
+.main-counter {
+
+    margin-top: 8px;
+
+    color: #aaa;
+
+    font-size: 13px;
+
+    letter-spacing: 2px;
+
+}
+
+
+/* =========================================
+   SECTION
+========================================= */
+
+.display-section {
+
+    max-width: 1400px;
+
+    margin: 0 auto 25px;
+
+}
+
+
+.display-section h2 {
+
+    margin: 0 0 10px;
+
+    color: #777;
+
+    font-size: 10px;
+
+    letter-spacing: 3px;
+
+}
+
+
+.section-heading {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+}
+
+
+.section-heading span {
+
+    color: #666;
+
+    font-size: 9px;
+
+}
+
+
+/* =========================================
+   COUNTERS
+========================================= */
+
+.public-counter-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 15px;
+
+}
+
+
+.public-counter {
+
+    min-height: 135px;
+
+    padding: 18px;
+
+    box-sizing: border-box;
+
+    border: 1px solid #333;
+
+    border-radius: 12px;
+
+    background: #171717;
+
+    text-align: center;
+
+}
+
+
+.public-counter.active {
+
+    border-color: #2979ff;
+
+    background: #111c31;
+
+}
+
+
+.public-counter-title {
+
+    color: #aaa;
+
+    font-size: 11px;
+
+    letter-spacing: 2px;
+
+}
+
+
+.public-counter-ticket {
+
+    margin-top: 8px;
+
+    font-size: 42px;
+
+    font-weight: bold;
+
+}
+
+
+.public-counter.active
+.public-counter-ticket {
+
+    color: #2979ff;
+
+}
+
+
+.counter-state {
+
+    margin-top: 6px;
+
+    font-size: 9px;
+
+}
+
+
+.counter-state.available {
+
+    color: #00c853;
+
+}
+
+
+.counter-state.serving {
+
+    color: #2979ff;
+
+}
+
+
+/* =========================================
+   SUMMARY
+========================================= */
+
+.summary-grid {
+
+    max-width: 1400px;
+
+    margin: 0 auto 25px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 12px;
+
+}
+
+
+.summary-card {
+
+    padding: 15px;
+
+    background: #171717;
+
+    border: 1px solid #333;
+
+    border-radius: 10px;
+
+    text-align: center;
+
+}
+
+
+.summary-card span {
+
+    display: block;
+
+    font-size: 9px;
+
+    letter-spacing: 1px;
+
+}
+
+
+.summary-card strong {
+
+    display: block;
+
+    margin-top: 5px;
+
+    font-size: 28px;
+
+}
+
+
+.summary-card.waiting {
+
+    border-color: #00c853;
+
+}
+
+
+.summary-card.waiting strong {
+
+    color: #00c853;
+
+}
+
+
+.summary-card.serving {
+
+    border-color: #2979ff;
+
+}
+
+
+.summary-card.serving strong {
+
+    color: #2979ff;
+
+}
+
+
+.summary-card.served {
+
+    border-color: #e53935;
+
+}
+
+
+.summary-card.served strong {
+
+    color: #e53935;
+
+}
+
+
+.summary-card.cancelled {
+
+    border-color: #555;
+
+}
+
+
+.summary-card.cancelled strong {
+
+    color: #777;
+
+}
+
+
+/* =========================================
+   TICKET BOARD
+========================================= */
+
+.public-ticket-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fill,
+            minmax(150px, 1fr)
+        );
+
+    gap: 10px;
+
+    max-height: 400px;
+
+    overflow-y: auto;
+
+}
+
+
+.public-ticket {
+
+    min-height: 85px;
+
+    border: 1px solid #333;
+
+    border-radius: 9px;
+
+    background: #171717;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 5px;
+
+}
+
+
+.public-ticket strong {
+
+    font-size: 20px;
+
+}
+
+
+.public-ticket span {
+
+    font-size: 9px;
+
+}
+
+
+.public-ticket small {
+
+    color: #aaa;
+
+    font-size: 8px;
+
+}
+
+
+.public-ticket.waiting {
+
+    border-color: #00c853;
+
+}
+
+
+.public-ticket.waiting strong {
+
+    color: #00c853;
+
+}
+
+
+.public-ticket.serving {
+
+    border-color: #2979ff;
+
+    background: #111c31;
+
+}
+
+
+.public-ticket.serving strong {
+
+    color: #2979ff;
+
+}
+
+
+.public-ticket.served {
+
+    border-color: #e53935;
+
+    opacity: 0.75;
+
+}
+
+
+.public-ticket.served strong {
+
+    color: #e53935;
+
+}
+
+
+.public-ticket.cancelled {
+
+    border-color: #444;
+
+    opacity: 0.5;
+
+}
+
+
+/* =========================================
+   FOOTER
+========================================= */
+
+.public-footer {
+
+    margin-top: 25px;
+
+    padding-top: 15px;
+
+    border-top: 1px solid #292929;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    color: #555;
+
+    font-size: 9px;
+
+}
+
+
+/* =========================================
+   LOADING / ERROR
+========================================= */
+
+.display-loading,
+.display-error {
+
+    min-height: 100vh;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-direction: column;
+
+    color: #aaa;
+
+}
+
+
+.display-error h1 {
+
+    color: #e53935;
+
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 700px) {
+
+    .public-display {
+
+        padding: 15px;
+
+    }
+
+
+    .public-header {
+
+        flex-direction: column;
+
+        gap: 15px;
+
+    }
+
+
+    .header-right {
+
+        text-align: left;
+
+    }
+
+
+    .public-counter-grid {
+
+        grid-template-columns: 1fr;
+
+    }
+
+
+    .summary-grid {
+
+        grid-template-columns:
+            repeat(2, 1fr);
+
+    }
+
+
+    .public-footer {
+
+        flex-direction: column;
+
+        gap: 5px;
+
+        text-align: center;
+
+    }
+
+}

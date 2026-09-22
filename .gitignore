@@ -1,0 +1,79 @@
+HELP.md
+
+# =========================
+# Maven / Spring Boot
+# =========================
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+application-local.properties
+application-local.yml
+
+# Logs
+*.log
+
+# =========================
+# STS
+# =========================
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# =========================
+# IntelliJ IDEA
+# =========================
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# =========================
+# NetBeans
+# =========================
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# =========================
+# VS Code
+# =========================
+.vscode/
+
+# =========================
+# React / Node
+# =========================
+node_modules/
+qflow-frontend/node_modules/
+
+qflow-frontend/dist/
+qflow-frontend/.vite/
+
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+# Local Spring configuration
+src/main/resources/application.properties

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QFlow</title>
+
+    <link rel="stylesheet" href="css/qflow.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🔥 QFlow</h1>
+
+    <div id="connectionStatus" class="status">
+        Connecting...
+    </div>
+
+    <section class="card">
+        <p>Queue #4</p>
+
+        <h3>Now Serving</h3>
+
+        <div id="nowServing">-</div>
+    </section>
+
+    <section class="card">
+        <h2>Join Queue</h2>
+
+        <button id="joinBtn">
+            🎟️ Join Queue
+        </button>
+
+        <button id="cancelBtn">
+            ❌ Cancel Ticket
+        </button>
+
+        <button id="callNextBtn">
+            📢 Call Next
+        </button>
+    </section>
+
+    <section class="card">
+        <h2>Your Ticket</h2>
+
+        <div class="ticket-grid">
+
+            <div>
+                <span>Ticket Number</span>
+                <strong id="ticketNumber">-</strong>
+            </div>
+
+            <div>
+                <span>People Ahead</span>
+                <strong id="peopleAhead">-</strong>
+            </div>
+
+            <div>
+                <span>Position</span>
+                <strong id="position">-</strong>
+            </div>
+
+        </div>
+
+        <div id="ticketStatus">
+            Status: -
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Live Events</h2>
+
+        <pre id="eventLog"></pre>
+    </section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.2.1/bundles/stomp.umd.min.js"></script>
+
+<script src="js/qflow.js"></script>
+
+</body>
+</html>
