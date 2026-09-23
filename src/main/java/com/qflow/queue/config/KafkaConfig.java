@@ -4,6 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -21,6 +22,16 @@ import java.util.Map;
 @EnableKafka
 public class KafkaConfig {
 
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
+    @Value("${spring.kafka.consumer.group-id:qflow-test-group}")
+    private String consumerGroupId;
+
+    @Value("${spring.kafka.consumer.auto-offset-reset:earliest}")
+    private String autoOffsetReset;
+
+
     // ---------- PRODUCER ----------
 
     @Bean
@@ -30,7 +41,7 @@ public class KafkaConfig {
 
         config.put(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                "localhost:9092"
+                bootstrapServers
         );
 
         config.put(
@@ -45,6 +56,7 @@ public class KafkaConfig {
 
         return new DefaultKafkaProducerFactory<>(config);
     }
+
 
     @Bean
     public KafkaTemplate<String, String> kafkaTemplate() {
@@ -61,17 +73,17 @@ public class KafkaConfig {
 
         config.put(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                "localhost:9092"
+                bootstrapServers
         );
 
         config.put(
                 ConsumerConfig.GROUP_ID_CONFIG,
-                "qflow-test-group"
+                consumerGroupId
         );
 
         config.put(
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-                "earliest"
+                autoOffsetReset
         );
 
         config.put(
@@ -86,6 +98,7 @@ public class KafkaConfig {
 
         return new DefaultKafkaConsumerFactory<>(config);
     }
+
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, String>
