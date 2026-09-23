@@ -15,8 +15,9 @@ target/
 .env.*
 !.env.example
 
-application-local.properties
-application-local.yml
+# Local Spring configuration
+src/main/resources/application-local.properties
+src/main/resources/application-local.yml
 
 # Logs
 *.log
@@ -75,5 +76,3 @@ pnpm-debug.log*
 # =========================
 .DS_Store
 Thumbs.db
-# Local Spring configuration
-src/main/resources/application.properties
