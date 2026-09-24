@@ -1,11 +1,10 @@
 import { Client } from "@stomp/stompjs";
 
-const WS_URL = "ws://localhost:8081/ws";
-
+const WS_URL = "ws://localhost:8080/ws";
 
 // =====================================================
 // QUEUE WEBSOCKET
-// Used by Display Board
+// Used by Display Board / Queue Display
 // =====================================================
 
 export function createWebSocketClient(
@@ -14,36 +13,34 @@ export function createWebSocketClient(
     onConnect,
     onError
 ) {
-
     if (!queueId) {
         console.error("❌ WebSocket queueId is missing");
         return null;
     }
 
-    const client = new Client({
+    console.log(
+        "🔌 Connecting queue WebSocket:",
+        WS_URL
+    );
 
+    const client = new Client({
         brokerURL: WS_URL,
 
         reconnectDelay: 5000,
 
         heartbeatIncoming: 10000,
-
         heartbeatOutgoing: 10000,
 
-        debug: message => {
+        debug: (message) => {
             console.log("[STOMP]", message);
         },
 
         onConnect: () => {
-
             console.log(
                 "🟢 Queue WebSocket connected"
             );
 
-            onConnect?.();
-
-            const destination =
-                `/topic/queue/${queueId}`;
+            const destination = `/topic/queue/${queueId}`;
 
             console.log(
                 "📡 Subscribing to:",
@@ -52,84 +49,74 @@ export function createWebSocketClient(
 
             client.subscribe(
                 destination,
-                message => {
-
+                (message) => {
                     try {
-
                         console.log(
                             "📨 Queue WebSocket message:",
                             message.body
                         );
 
-                        const event =
-                            JSON.parse(
-                                message.body
-                            );
+                        const event = JSON.parse(
+                            message.body
+                        );
 
                         console.log(
                             "📡 Queue event:",
                             event
                         );
 
-                        onEvent?.(event);
+                        if (onEvent) {
+                            onEvent(event);
+                        }
 
                     } catch (error) {
-
                         console.error(
                             "❌ Event parsing failed:",
                             error
                         );
-
                     }
-
                 }
             );
 
+            if (onConnect) {
+                onConnect();
+            }
         },
 
-        onStompError: frame => {
-
+        onStompError: (frame) => {
             console.error(
                 "❌ STOMP error:",
                 frame
             );
 
-            onError?.(frame);
-
+            if (onError) {
+                onError(frame);
+            }
         },
 
-        onWebSocketError: error => {
-
+        onWebSocketError: (error) => {
             console.error(
                 "❌ WebSocket error:",
                 error
             );
 
-            onError?.(error);
-
+            if (onError) {
+                onError(error);
+            }
         },
 
-        onWebSocketClose: event => {
-
+        onWebSocketClose: (event) => {
             console.warn(
-                "🔴 WebSocket closed:",
+                "🔴 Queue WebSocket closed:",
                 event
             );
-
-        }
-
+        },
     });
-
-    console.log(
-        "🔌 Connecting queue WebSocket:",
-        WS_URL
-    );
 
     client.activate();
 
     return client;
 }
-
 
 
 // =====================================================
@@ -143,43 +130,35 @@ export function createUserWebSocketClient(
     onConnect,
     onError
 ) {
-
     if (!userId) {
-
         console.error(
             "❌ WebSocket userId is missing"
         );
 
         return null;
-
     }
 
-    const client = new Client({
+    console.log(
+        "🔌 Connecting user WebSocket:",
+        WS_URL
+    );
 
+    const client = new Client({
         brokerURL: WS_URL,
 
         reconnectDelay: 5000,
 
         heartbeatIncoming: 10000,
-
         heartbeatOutgoing: 10000,
 
-        debug: message => {
-
-            console.log(
-                "[STOMP]",
-                message
-            );
-
+        debug: (message) => {
+            console.log("[STOMP]", message);
         },
 
         onConnect: () => {
-
             console.log(
                 "🟢 User WebSocket connected"
             );
-
-            onConnect?.();
 
             const destination =
                 `/topic/user/${userId}`;
@@ -191,85 +170,69 @@ export function createUserWebSocketClient(
 
             client.subscribe(
                 destination,
-
-                message => {
-
+                (message) => {
                     try {
-
                         console.log(
                             "📨 User WebSocket message:",
                             message.body
                         );
 
-                        const event =
-                            JSON.parse(
-                                message.body
-                            );
+                        const event = JSON.parse(
+                            message.body
+                        );
 
                         console.log(
                             "📡 User ticket event:",
                             event
                         );
 
-                        onEvent?.(
-                            event
-                        );
+                        if (onEvent) {
+                            onEvent(event);
+                        }
 
                     } catch (error) {
-
                         console.error(
                             "❌ Event parsing failed:",
                             error
                         );
-
                     }
-
                 }
             );
 
+            if (onConnect) {
+                onConnect();
+            }
         },
 
-        onStompError: frame => {
-
+        onStompError: (frame) => {
             console.error(
                 "❌ STOMP error:",
                 frame
             );
 
-            onError?.(
-                frame
-            );
-
+            if (onError) {
+                onError(frame);
+            }
         },
 
-        onWebSocketError: error => {
-
+        onWebSocketError: (error) => {
             console.error(
                 "❌ WebSocket error:",
                 error
             );
 
-            onError?.(
-                error
-            );
-
+            if (onError) {
+                onError(error);
+            }
         },
 
-        onWebSocketClose: event => {
-
+        onWebSocketClose: (event) => {
             console.warn(
                 "🔴 User WebSocket closed:",
                 event
             );
-
-        }
-
+        },
     });
-
-    console.log(
-        "🔌 Connecting user WebSocket:",
-        WS_URL
-    );
 
     client.activate();
 

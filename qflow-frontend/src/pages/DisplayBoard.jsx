@@ -1,1024 +1,1346 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import api from "../services/api";
+import { createWebSocketClient } from "../services/websocket";
 
-import {
-    getQueues,
-    getQueueById,
-    getAllTickets,
-    getCounters
-} from "../services/queueApi";
 
-import {
-    createWebSocketClient
-} from "../services/webSocket";
+// ============================================================
+// CONFIGURATION
+// ============================================================
 
+const QUEUE_ID = 1;
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+/**
+ * Convert different possible API response shapes into an array.
+ *
+ * Supports:
+ * [
+ *   ...
+ * ]
+ *
+ * {
+ *   data: [...]
+ * }
+ *
+ * {
+ *   content: [...]
+ * }
+ */
+function toArray(value) {
+    if (Array.isArray(value)) {
+        return value;
+    }
+
+    if (Array.isArray(value?.data)) {
+        return value.data;
+    }
+
+    if (Array.isArray(value?.content)) {
+        return value.content;
+    }
+
+    return [];
+}
+
+
+/**
+ * Extract an ID from a counter object.
+ */
+function getCounterId(counter) {
+    if (!counter) {
+        return null;
+    }
+
+    if (typeof counter === "number") {
+        return counter;
+    }
+
+    if (typeof counter === "string") {
+        const parsed = Number(counter);
+
+        return Number.isNaN(parsed)
+            ? counter
+            : parsed;
+    }
+
+    return (
+        counter.id ??
+        counter.counterId ??
+        counter.counterNumber ??
+        counter.number ??
+        null
+    );
+}
+
+
+/**
+ * Extract counter ID from a ticket.
+ *
+ * Supports different possible backend DTO shapes:
+ *
+ * ticket.counterId
+ * ticket.counter
+ * ticket.counter.id
+ * ticket.counter.number
+ * ticket.counterNumber
+ */
+function getTicketCounterId(ticket) {
+    if (!ticket) {
+        return null;
+    }
+
+    // Direct counterId
+    if (ticket.counterId != null) {
+        return getCounterId(ticket.counterId);
+    }
+
+    // counterNumber
+    if (ticket.counterNumber != null) {
+        return getCounterId(ticket.counterNumber);
+    }
+
+    // counterId nested in another object
+    if (ticket.counter?.id != null) {
+        return getCounterId(ticket.counter.id);
+    }
+
+    // counter object
+    if (ticket.counter != null) {
+        return getCounterId(ticket.counter);
+    }
+
+    // counter number
+    if (ticket.counter?.number != null) {
+        return getCounterId(ticket.counter.number);
+    }
+
+    return null;
+}
+
+
+/**
+ * Extract counter ID from a WebSocket event.
+ */
+function getEventCounterId(event) {
+    if (!event) {
+        return null;
+    }
+
+    if (event.counterId != null) {
+        return getCounterId(event.counterId);
+    }
+
+    if (event.counterNumber != null) {
+        return getCounterId(event.counterNumber);
+    }
+
+    if (event.counter?.id != null) {
+        return getCounterId(event.counter.id);
+    }
+
+    if (event.counter != null) {
+        return getCounterId(event.counter);
+    }
+
+    return null;
+}
+
+
+/**
+ * Extract ticket number from an event.
+ */
+function getEventTicketNumber(event) {
+    return (
+        event?.ticketNumber ??
+        event?.ticket?.ticketNumber ??
+        event?.ticket?.number ??
+        event?.number ??
+        null
+    );
+}
+
+
+/**
+ * Extract ticket ID from an event.
+ */
+function getEventTicketId(event) {
+    return (
+        event?.ticketId ??
+        event?.ticket?.id ??
+        event?.id ??
+        null
+    );
+}
+
+
+/**
+ * Determine whether a ticket is serving.
+ */
+function isServing(ticket) {
+    return (
+        String(ticket?.status ?? "").toUpperCase() ===
+        "SERVING"
+    );
+}
+
+
+/**
+ * Determine whether a ticket is waiting.
+ */
+function isWaiting(ticket) {
+    return (
+        String(ticket?.status ?? "").toUpperCase() ===
+        "WAITING"
+    );
+}
+
+
+/**
+ * Determine whether a counter is available.
+ */
+function isCounterAvailable(counter) {
+    if (!counter) {
+        return false;
+    }
+
+    // Explicit boolean
+    if (typeof counter.available === "boolean") {
+        return counter.available;
+    }
+
+    if (typeof counter.isAvailable === "boolean") {
+        return counter.isAvailable;
+    }
+
+    // Status-based
+    const status = String(
+        counter.status ?? ""
+    ).toUpperCase();
+
+    if (
+        status === "OFFLINE" ||
+        status === "UNAVAILABLE" ||
+        status === "INACTIVE"
+    ) {
+        return false;
+    }
+
+    return true;
+}
+
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 export default function DisplayBoard() {
 
-    const [queues, setQueues] = useState([]);
+    // ========================================================
+    // STATE
+    // ========================================================
 
-    const [selectedQueueId, setSelectedQueueId] =
-        useState("");
+    const [queue, setQueue] = useState(null);
 
-    const [queue, setQueue] =
-        useState(null);
+    const [counters, setCounters] = useState([]);
 
-    const [tickets, setTickets] =
-        useState([]);
+    const [tickets, setTickets] = useState([]);
 
-    const [counters, setCounters] =
-        useState([]);
+    /**
+     * Structure:
+     *
+     * {
+     *   1: ticket,
+     *   2: ticket,
+     *   3: ticket
+     * }
+     */
+    const [counterTickets, setCounterTickets] =
+        useState({});
 
     const [loading, setLoading] =
         useState(true);
 
-    const [error, setError] =
-        useState("");
-
-    const [connected, setConnected] =
+    const [wsConnected, setWsConnected] =
         useState(false);
 
-    const websocketRef =
-        useRef(null);
+    const [lastEvent, setLastEvent] =
+        useState(null);
+
+    const [announcement, setAnnouncement] =
+        useState(null);
+
+    const [changingCounter, setChangingCounter] =
+        useState(null);
 
 
-    // =====================================================
-    // LOAD QUEUES
-    // =====================================================
+    // ========================================================
+    // FETCH QUEUE
+    // ========================================================
 
-    useEffect(() => {
+    const fetchQueue = useCallback(async () => {
 
-        let cancelled = false;
+        try {
 
-        async function loadQueues() {
+            const response = await api.get(
+                `/queues/${QUEUE_ID}`
+            );
 
-            try {
+            console.log(
+                "📥 Queue:",
+                response.data
+            );
 
-                setLoading(true);
-                setError("");
+            setQueue(response.data);
 
-                const data =
-                    await getQueues();
+        } catch (error) {
 
-                if (cancelled) {
-                    return;
-                }
-
-                const queueList =
-                    Array.isArray(data)
-                        ? data
-                        : [];
-
-                setQueues(queueList);
-
-                console.log(
-                    "📋 Queues:",
-                    queueList
-                );
-
-
-                if (queueList.length > 0) {
-
-                    const firstQueue =
-                        queueList[0];
-
-                    const id =
-                        firstQueue.id ??
-                        firstQueue.queueId;
-
-                    if (id) {
-
-                        setSelectedQueueId(
-                            String(id)
-                        );
-
-                    }
-
-                }
-
-            } catch (err) {
-
-                console.error(
-                    "❌ Failed to load queues:",
-                    err
-                );
-
-                if (!cancelled) {
-
-                    setError(
-                        err.response?.data?.message ||
-                        "Unable to load queues."
-                    );
-
-                }
-
-            } finally {
-
-                if (!cancelled) {
-
-                    setLoading(false);
-
-                }
-
-            }
+            console.error(
+                "❌ Failed to fetch queue:",
+                error
+            );
 
         }
-
-        loadQueues();
-
-        return () => {
-
-            cancelled = true;
-
-        };
 
     }, []);
 
 
-    // =====================================================
-    // LOAD SELECTED QUEUE
-    // =====================================================
+    // ========================================================
+    // FETCH COUNTERS
+    // ========================================================
 
-    useEffect(() => {
+    const fetchCounters = useCallback(async () => {
 
-        if (!selectedQueueId) {
-            return;
+        try {
+
+            const response = await api.get(
+                `/queues/${QUEUE_ID}/counters`
+            );
+
+            const data = toArray(
+                response.data
+            );
+
+            console.log(
+                "📥 Counters:",
+                data
+            );
+
+            setCounters(data);
+
+        } catch (error) {
+
+            console.error(
+                "❌ Failed to fetch counters:",
+                error
+            );
+
         }
 
-        let cancelled = false;
+    }, []);
 
 
-        async function loadQueueData() {
+    // ========================================================
+    // FETCH TICKETS
+    // ========================================================
 
-            try {
+    const fetchTickets = useCallback(async () => {
 
-                setError("");
+        try {
 
-                console.log(
-                    "🔎 Loading queue:",
-                    selectedQueueId
-                );
+            const response = await api.get(
+                `/queues/${QUEUE_ID}/tickets`
+            );
 
+            const data = toArray(
+                response.data
+            );
 
-                const [
-                    queueData,
-                    ticketData,
-                    counterData
-                ] = await Promise.all([
+            console.log(
+                "📥 Tickets:",
+                data
+            );
 
-                    getQueueById(
-                        selectedQueueId
-                    ),
-
-                    getAllTickets(
-                        selectedQueueId
-                    ),
-
-                    getCounters(
-                        selectedQueueId
-                    )
-
-                ]);
+            setTickets(data);
 
 
-                if (cancelled) {
+            // =================================================
+            // BUILD COUNTER -> SERVING TICKET MAP
+            // =================================================
+
+            const newCounterTickets = {};
+
+            data.forEach((ticket) => {
+
+                if (!isServing(ticket)) {
                     return;
                 }
 
+                const counterId =
+                    getTicketCounterId(ticket);
 
-                console.log(
-                    "📦 Queue:",
-                    queueData
-                );
-
-                console.log(
-                    "🎫 Tickets:",
-                    ticketData
-                );
-
-                console.log(
-                    "🪑 Counters:",
-                    counterData
-                );
-
-
-                setQueue(
-                    queueData
-                );
-
-                setTickets(
-                    Array.isArray(ticketData)
-                        ? ticketData
-                        : []
-                );
-
-                setCounters(
-                    Array.isArray(counterData)
-                        ? counterData
-                        : []
-                );
-
-
-            } catch (err) {
-
-                console.error(
-                    "❌ Display error:",
-                    err
-                );
-
-                if (!cancelled) {
-
-                    setError(
-                        err.response?.data?.message ||
-                        "Queue not found"
+                if (counterId == null) {
+                    console.warn(
+                        "⚠️ SERVING ticket has no counter:",
+                        ticket
                     );
 
+                    return;
+                }
+
+                newCounterTickets[
+                    String(counterId)
+                    ] = ticket;
+
+            });
+
+
+            console.log(
+                "📊 Counter -> Serving ticket:",
+                newCounterTickets
+            );
+
+            setCounterTickets(
+                newCounterTickets
+            );
+
+        } catch (error) {
+
+            console.error(
+                "❌ Failed to fetch tickets:",
+                error
+            );
+
+        }
+
+    }, []);
+
+
+    // ========================================================
+    // INITIAL DATA
+    // ========================================================
+
+    useEffect(() => {
+
+        let mounted = true;
+
+        const loadInitialData = async () => {
+
+            setLoading(true);
+
+            try {
+
+                await Promise.all([
+                    fetchQueue(),
+                    fetchCounters(),
+                    fetchTickets(),
+                ]);
+
+            } finally {
+
+                if (mounted) {
+                    setLoading(false);
                 }
 
             }
 
-        }
-
-
-        loadQueueData();
-
-
-        return () => {
-
-            cancelled = true;
-
         };
 
-    }, [selectedQueueId]);
+        loadInitialData();
+
+        return () => {
+            mounted = false;
+        };
+
+    }, [
+        fetchQueue,
+        fetchCounters,
+        fetchTickets,
+    ]);
 
 
-    // =====================================================
+    // ========================================================
     // WEBSOCKET
-    // =====================================================
+    // ========================================================
 
     useEffect(() => {
 
-        if (!selectedQueueId) {
-            return;
-        }
-
-
-        // Close old connection
-
-        if (websocketRef.current) {
-
-            websocketRef.current.deactivate();
-
-            websocketRef.current = null;
-
-        }
-
-
-        setConnected(false);
-
+        console.log(
+            "🚀 Starting Display Board WebSocket"
+        );
 
         const client =
             createWebSocketClient(
 
-                selectedQueueId,
+                QUEUE_ID,
 
-                async event => {
+                // ============================================
+                // EVENT RECEIVED
+                // ============================================
+
+                async (event) => {
 
                     console.log(
-                        "📡 Queue WebSocket event:",
+                        "🔥 DISPLAY BOARD EVENT:",
                         event
                     );
 
-
-                    /*
-                     * Whenever something changes,
-                     * reload the current queue data.
-                     */
-
-                    try {
-
-                        const [
-                            queueData,
-                            ticketData,
-                            counterData
-                        ] = await Promise.all([
-
-                            getQueueById(
-                                selectedQueueId
-                            ),
-
-                            getAllTickets(
-                                selectedQueueId
-                            ),
-
-                            getCounters(
-                                selectedQueueId
-                            )
-
-                        ]);
+                    setLastEvent(event);
 
 
-                        setQueue(
-                            queueData
-                        );
+                    // ========================================
+                    // TICKET CALLED
+                    // ========================================
 
-                        setTickets(
-                            Array.isArray(ticketData)
-                                ? ticketData
-                                : []
-                        );
+                    if (
+                        event.eventType ===
+                        "TICKET_CALLED"
+                    ) {
 
-                        setCounters(
-                            Array.isArray(counterData)
-                                ? counterData
-                                : []
+                        const counterId =
+                            getEventCounterId(
+                                event
+                            );
+
+                        const ticketId =
+                            getEventTicketId(
+                                event
+                            );
+
+                        const ticketNumber =
+                            getEventTicketNumber(
+                                event
+                            );
+
+
+                        console.log(
+                            "📢 TICKET CALLED",
+                            {
+                                counterId,
+                                ticketId,
+                                ticketNumber,
+                            }
                         );
 
 
-                    } catch (error) {
+                        // ====================================
+                        // If backend event contains
+                        // counter information
+                        // ====================================
 
-                        console.error(
-                            "❌ Failed to refresh display:",
-                            error
+                        if (counterId != null) {
+
+                            const counterKey =
+                                String(
+                                    counterId
+                                );
+
+
+                            // ------------------------------
+                            // Animate this counter
+                            // ------------------------------
+
+                            setChangingCounter(
+                                counterKey
+                            );
+
+
+                            // ------------------------------
+                            // Update ONLY this counter
+                            // ------------------------------
+
+                            setCounterTickets(
+                                (previous) => ({
+
+                                    ...previous,
+
+                                    [counterKey]: {
+
+                                        id:
+                                        ticketId,
+
+                                        ticketNumber:
+                                        ticketNumber,
+
+                                        status:
+                                            "SERVING",
+
+                                        counterId:
+                                        counterId,
+
+                                    },
+
+                                })
+                            );
+
+
+                            // ------------------------------
+                            // Announcement
+                            // ------------------------------
+
+                            setAnnouncement({
+
+                                ticketNumber:
+                                ticketNumber,
+
+                                counterId:
+                                counterId,
+
+                            });
+
+
+                            // ------------------------------
+                            // Stop animation
+                            // ------------------------------
+
+                            setTimeout(() => {
+
+                                setChangingCounter(
+                                    null
+                                );
+
+                            }, 700);
+
+
+                            // ------------------------------
+                            // Hide announcement
+                            // ------------------------------
+
+                            setTimeout(() => {
+
+                                setAnnouncement(
+                                    null
+                                );
+
+                            }, 3500);
+
+                        }
+
+
+                        // ====================================
+                        // Synchronize with backend
+                        // ====================================
+
+                        await fetchTickets();
+
+                        await fetchCounters();
+
+                        await fetchQueue();
+
+                    }
+
+
+                    // ========================================
+                    // TICKET SERVED
+                    // ========================================
+
+                    if (
+                        event.eventType ===
+                        "TICKET_SERVED"
+                    ) {
+
+                        const counterId =
+                            getEventCounterId(
+                                event
+                            );
+
+                        const ticketId =
+                            getEventTicketId(
+                                event
+                            );
+
+                        const ticketNumber =
+                            getEventTicketNumber(
+                                event
+                            );
+
+
+                        console.log(
+                            "✅ TICKET SERVED",
+                            {
+                                counterId,
+                                ticketId,
+                                ticketNumber,
+                            }
                         );
+
+
+                        // ====================================
+                        // If event has counter ID,
+                        // remove ONLY that counter's ticket
+                        // ====================================
+
+                        if (counterId != null) {
+
+                            const counterKey =
+                                String(
+                                    counterId
+                                );
+
+                            setCounterTickets(
+                                (previous) => {
+
+                                    const updated = {
+                                        ...previous,
+                                    };
+
+                                    delete updated[
+                                        counterKey
+                                        ];
+
+                                    return updated;
+
+                                }
+                            );
+
+                        } else {
+
+                            // =================================
+                            // If event does not contain
+                            // counter information, remove
+                            // by ticket ID instead.
+                            // =================================
+
+                            setCounterTickets(
+                                (previous) => {
+
+                                    const updated = {};
+
+                                    Object.entries(
+                                        previous
+                                    ).forEach(
+                                        ([
+                                             key,
+                                             ticket,
+                                         ]) => {
+
+                                            if (
+                                                String(
+                                                    ticket.id
+                                                ) !==
+                                                String(
+                                                    ticketId
+                                                )
+                                            ) {
+
+                                                updated[
+                                                    key
+                                                    ] =
+                                                    ticket;
+
+                                            }
+
+                                        }
+                                    );
+
+                                    return updated;
+
+                                }
+                            );
+
+                        }
+
+
+                        // ====================================
+                        // Refresh actual backend state
+                        // ====================================
+
+                        await fetchTickets();
+
+                        await fetchCounters();
+
+                        await fetchQueue();
 
                     }
 
                 },
 
 
+                // ============================================
+                // CONNECTED
+                // ============================================
+
                 () => {
 
                     console.log(
-                        "🟢 Display WebSocket connected"
+                        "🟢 Display Board WebSocket connected"
                     );
 
-                    setConnected(true);
+                    setWsConnected(true);
 
                 },
 
 
-                error => {
+                // ============================================
+                // ERROR
+                // ============================================
+
+                (error) => {
 
                     console.error(
-                        "❌ Display WebSocket error:",
+                        "❌ Display Board WebSocket error:",
                         error
                     );
 
-                    setConnected(false);
+                    setWsConnected(false);
 
                 }
 
             );
 
 
-        websocketRef.current =
-            client;
-
+        // ====================================================
+        // CLEANUP
+        // ====================================================
 
         return () => {
 
-            if (client) {
+            console.log(
+                "🔴 Closing Display Board WebSocket"
+            );
 
-                client.deactivate();
+            client?.deactivate();
 
-            }
-
-            websocketRef.current =
-                null;
-
-            setConnected(false);
+            setWsConnected(false);
 
         };
 
-    }, [selectedQueueId]);
+    }, [
+        fetchQueue,
+        fetchCounters,
+        fetchTickets,
+    ]);
 
 
-    // =====================================================
+    // ========================================================
+    // WAITING TICKETS
+    // ========================================================
+
+    const waitingTickets = useMemo(() => {
+
+        return tickets
+            .filter(isWaiting)
+            .sort(
+                (a, b) =>
+                    Number(
+                        a.ticketNumber ?? 0
+                    ) -
+                    Number(
+                        b.ticketNumber ?? 0
+                    )
+            );
+
+    }, [tickets]);
+
+
+    // ========================================================
+    // COUNTER DISPLAY DATA
+    // ========================================================
+
+    const displayCounters = useMemo(() => {
+
+        return counters.map((counter) => {
+
+            const counterId =
+                getCounterId(counter);
+
+            const key =
+                String(counterId);
+
+            const servingTicket =
+                counterTickets[key] ??
+                null;
+
+            return {
+
+                ...counter,
+
+                counterId,
+
+                servingTicket,
+
+                available:
+                    isCounterAvailable(
+                        counter
+                    ),
+
+            };
+
+        });
+
+    }, [
+        counters,
+        counterTickets,
+    ]);
+
+
+    // ========================================================
     // LOADING
-    // =====================================================
+    // ========================================================
 
     if (loading) {
 
         return (
+            <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
 
-            <div className="
-                min-h-screen
-                bg-[#05070d]
-                flex
-                items-center
-                justify-center
-                text-white
-            ">
+                <div className="text-center">
 
-                <div className="
-                    text-center
-                ">
+                    <div className="w-14 h-14 border-4 border-white/10 border-t-fuchsia-500 rounded-full animate-spin mx-auto mb-5" />
 
-                    <div className="
-                        text-5xl
-                        mb-4
-                    ">
-                        📺
-                    </div>
-
-                    <p className="
-                        text-gray-400
-                    ">
-                        Loading queues...
+                    <p className="text-gray-400">
+                        Loading QFlow...
                     </p>
 
                 </div>
 
             </div>
-
         );
 
     }
 
 
-    // =====================================================
-    // ERROR
-    // =====================================================
-
-    if (error && queues.length === 0) {
-
-        return (
-
-            <div className="
-                min-h-screen
-                bg-[#05070d]
-                flex
-                items-center
-                justify-center
-                text-white
-                px-6
-            ">
-
-                <div className="
-                    max-w-md
-                    w-full
-                    bg-[#15161b]
-                    border
-                    border-red-500/30
-                    rounded-2xl
-                    p-8
-                    text-center
-                ">
-
-                    <div className="
-                        text-5xl
-                        mb-5
-                    ">
-                        ⚠️
-                    </div>
-
-                    <h1 className="
-                        text-2xl
-                        font-bold
-                        mb-3
-                    ">
-                        Unable to load queues
-                    </h1>
-
-                    <p className="
-                        text-gray-400
-                    ">
-                        {error}
-                    </p>
-
-                </div>
-
-            </div>
-
-        );
-
-    }
-
-
-    // =====================================================
-    // MAIN UI
-    // =====================================================
+    // ========================================================
+    // UI
+    // ========================================================
 
     return (
-
-        <div className="
-            min-h-screen
-            bg-[#05070d]
-            text-white
-            px-6
-            py-8
-        ">
+        <div className="min-h-screen bg-[#050505] text-white overflow-hidden">
 
 
-            {/* HEADER */}
+            {/* =================================================
+                BACKGROUND
+            ================================================= */}
 
-            <div className="
-                max-w-7xl
-                mx-auto
-                mb-8
-            ">
+            <div className="fixed inset-0 pointer-events-none">
 
-                <div className="
-                    flex
-                    flex-col
-                    md:flex-row
-                    md:items-center
-                    md:justify-between
-                    gap-5
-                ">
+                <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-fuchsia-600/10 rounded-full blur-[140px]" />
 
-                    <div>
+                <div className="absolute top-[40%] -right-40 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[140px]" />
 
-                        <p className="
-                            text-purple-400
-                            text-sm
-                            font-semibold
-                            uppercase
-                            tracking-widest
-                        ">
-                            QFlow
+            </div>
+
+
+            {/* =================================================
+                ANNOUNCEMENT
+            ================================================= */}
+
+            {announcement && (
+
+                <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+                    <div className="relative px-16 py-12 rounded-[2rem] bg-[#101010] border border-fuchsia-500/40 shadow-[0_0_100px_rgba(217,70,239,0.25)] text-center animate-pulse">
+
+                        <p className="text-sm uppercase tracking-[0.4em] text-gray-500 mb-5">
+                            Please Proceed To
                         </p>
 
-                        <h1 className="
-                            text-4xl
-                            md:text-5xl
-                            font-bold
-                            mt-1
-                        ">
-                            Live Display Board
-                        </h1>
+                        <div className="text-8xl font-black text-white">
+                            {announcement.ticketNumber}
+                        </div>
+
+                        <div className="mt-6 text-3xl font-bold text-fuchsia-400">
+                            Counter{" "}
+                            {announcement.counterId}
+                        </div>
 
                     </div>
-
-
-                    {/* CONNECTION */}
-
-                    <div className="
-                        flex
-                        items-center
-                        gap-3
-                    ">
-
-                        <span
-                            className={`
-                                w-3
-                                h-3
-                                rounded-full
-                                ${
-                                connected
-                                    ? "bg-green-500"
-                                    : "bg-red-500"
-                            }
-                            `}
-                        />
-
-                        <span className="
-                            text-gray-400
-                            text-sm
-                        ">
-
-                            {connected
-                                ? "Live"
-                                : "Connecting..."}
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            {/* QUEUE SELECTOR */}
-
-            <div className="
-                max-w-7xl
-                mx-auto
-                mb-8
-            ">
-
-                <label className="
-                    block
-                    text-sm
-                    text-gray-400
-                    mb-2
-                ">
-                    Select Queue
-                </label>
-
-
-                <select
-                    value={selectedQueueId}
-                    onChange={e =>
-                        setSelectedQueueId(
-                            e.target.value
-                        )
-                    }
-                    className="
-                        w-full
-                        md:w-96
-                        bg-[#11131a]
-                        border
-                        border-gray-700
-                        rounded-xl
-                        px-4
-                        py-3
-                        text-white
-                        outline-none
-                        focus:border-purple-500
-                    "
-                >
-
-                    {queues.map(item => {
-
-                        const id =
-                            item.id ??
-                            item.queueId;
-
-                        return (
-
-                            <option
-                                key={id}
-                                value={id}
-                            >
-
-                                {item.name ??
-                                    `Queue ${id}`}
-
-                            </option>
-
-                        );
-
-                    })}
-
-                </select>
-
-            </div>
-
-
-            {/* ERROR */}
-
-            {error && (
-
-                <div className="
-                    max-w-7xl
-                    mx-auto
-                    mb-6
-                    bg-red-500/10
-                    border
-                    border-red-500/30
-                    rounded-xl
-                    p-4
-                    text-red-300
-                ">
-
-                    {error}
 
                 </div>
 
             )}
 
 
-            {queue && (
+            {/* =================================================
+                MAIN
+            ================================================= */}
 
-                <div className="
-                    max-w-7xl
-                    mx-auto
-                ">
+            <div className="relative z-10 max-w-[1700px] mx-auto px-6 py-7">
 
 
-                    {/* QUEUE NAME */}
+                {/* =================================================
+                    HEADER
+                ================================================= */}
 
-                    <div className="
-                        bg-[#11131a]
-                        border
-                        border-gray-800
-                        rounded-3xl
-                        p-8
-                        mb-8
-                    ">
+                <header className="flex items-center justify-between mb-10">
 
-                        <p className="
-                            text-purple-400
-                            text-sm
-                            uppercase
-                            tracking-widest
-                        ">
-                            Queue
-                        </p>
+                    {/* BRAND */}
 
-                        <h2 className="
-                            text-3xl
-                            md:text-4xl
-                            font-bold
-                            mt-2
-                        ">
+                    <div className="flex items-center gap-4">
 
-                            {queue.name}
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center shadow-lg shadow-fuchsia-500/20">
 
-                        </h2>
+                            <span className="text-xl font-black">
+                                Q
+                            </span>
 
-                        {queue.description && (
+                        </div>
 
-                            <p className="
-                                text-gray-400
-                                mt-2
-                            ">
+                        <div>
 
-                                {queue.description}
+                            <h1 className="text-2xl font-bold tracking-tight">
+                                QFlow
+                            </h1>
 
+                            <p className="text-xs text-gray-500 uppercase tracking-[0.2em]">
+                                Queue Management
                             </p>
 
+                        </div>
+
+                    </div>
+
+
+                    {/* QUEUE INFO */}
+
+                    <div className="flex items-center gap-5">
+
+                        <div className="hidden sm:block text-right">
+
+                            <p className="font-semibold">
+                                {queue?.name ||
+                                    "Main Branch"}
+                            </p>
+
+                            <p className="text-xs text-gray-500">
+                                Live Queue Display
+                            </p>
+
+                        </div>
+
+
+                        {/* LIVE */}
+
+                        <div
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full border ${
+                                wsConnected
+                                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                    : "bg-red-500/10 border-red-500/20 text-red-400"
+                            }`}
+                        >
+
+                            <span
+                                className={`w-2 h-2 rounded-full ${
+                                    wsConnected
+                                        ? "bg-emerald-400 animate-pulse"
+                                        : "bg-red-400"
+                                }`}
+                            />
+
+                            <span className="text-xs font-semibold">
+                                {wsConnected
+                                    ? "LIVE"
+                                    : "OFFLINE"}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </header>
+
+
+                {/* =================================================
+                    SECTION TITLE
+                ================================================= */}
+
+                <div className="flex items-center gap-3 mb-5">
+
+                    <div className="w-1.5 h-7 rounded-full bg-fuchsia-500" />
+
+                    <div>
+
+                        <h2 className="text-2xl font-bold">
+                            Now Serving
+                        </h2>
+
+                        <p className="text-sm text-gray-500">
+                            Current tickets at each counter
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                {/* =================================================
+                    COUNTERS
+                ================================================= */}
+
+                {displayCounters.length === 0 ? (
+
+                    <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-16 text-center mb-8">
+
+                        <p className="text-gray-500">
+                            No counters configured
+                        </p>
+
+                    </div>
+
+                ) : (
+
+                    <div
+                        className={`grid gap-5 mb-8 ${
+                            displayCounters.length === 1
+                                ? "grid-cols-1"
+                                : displayCounters.length === 2
+                                    ? "grid-cols-1 md:grid-cols-2"
+                                    : displayCounters.length === 3
+                                        ? "grid-cols-1 md:grid-cols-3"
+                                        : "grid-cols-1 md:grid-cols-2 xl:grid-cols-4"
+                        }`}
+                    >
+
+                        {displayCounters.map(
+                            (counter) => {
+
+                                const counterId =
+                                    counter.counterId;
+
+                                const ticket =
+                                    counter.servingTicket;
+
+                                const isChanging =
+                                    String(
+                                        changingCounter
+                                    ) ===
+                                    String(
+                                        counterId
+                                    );
+
+                                return (
+
+                                    <div
+                                        key={String(
+                                            counterId
+                                        )}
+                                        className={`relative overflow-hidden rounded-[2rem] border bg-white/[0.03] transition-all duration-500 ${
+                                            isChanging
+                                                ? "border-fuchsia-400 shadow-[0_0_55px_rgba(217,70,239,0.25)]"
+                                                : "border-white/10"
+                                        }`}
+                                    >
+
+                                        {/* TOP ACCENT */}
+
+                                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-fuchsia-500 to-purple-500" />
+
+
+                                        <div className="p-7">
+
+
+                                            {/* COUNTER HEADER */}
+
+                                            <div className="flex items-start justify-between gap-3 mb-7">
+
+                                                <div>
+
+                                                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">
+                                                        Counter
+                                                    </p>
+
+                                                    <h3 className="text-2xl font-bold mt-1">
+                                                        {counter.name ||
+                                                            `Counter ${counterId}`}
+                                                    </h3>
+
+                                                </div>
+
+
+                                                <div
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+                                                        ticket
+                                                            ? "bg-emerald-500/10 text-emerald-400"
+                                                            : counter.available
+                                                                ? "bg-amber-500/10 text-amber-400"
+                                                                : "bg-red-500/10 text-red-400"
+                                                    }`}
+                                                >
+
+                                                    {ticket
+                                                        ? "SERVING"
+                                                        : counter.available
+                                                            ? "AVAILABLE"
+                                                            : "OFFLINE"}
+
+                                                </div>
+
+                                            </div>
+
+
+                                            {/* TICKET */}
+
+                                            <div
+                                                className={`min-h-[190px] flex flex-col items-center justify-center transition-all duration-500 ${
+                                                    isChanging
+                                                        ? "scale-110"
+                                                        : "scale-100"
+                                                }`}
+                                            >
+
+                                                {ticket ? (
+
+                                                    <>
+
+                                                        <p className="text-xs uppercase tracking-[0.35em] text-gray-500 mb-3">
+                                                            Ticket
+                                                        </p>
+
+                                                        <div className="text-8xl font-black leading-none bg-gradient-to-br from-white via-fuchsia-100 to-fuchsia-400 bg-clip-text text-transparent">
+                                                            {ticket.ticketNumber}
+                                                        </div>
+
+                                                        <div className="mt-5 flex items-center gap-2">
+
+                                                            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+
+                                                            <span className="text-xs uppercase tracking-wider text-emerald-400">
+                                                                Serving now
+                                                            </span>
+
+                                                        </div>
+
+                                                    </>
+
+                                                ) : (
+
+                                                    <>
+
+                                                        <div className="text-7xl font-black text-white/[0.08]">
+                                                            —
+                                                        </div>
+
+                                                        <p className="text-sm text-gray-500 mt-4">
+                                                            Waiting for ticket
+                                                        </p>
+
+                                                    </>
+
+                                                )}
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                );
+
+                            }
                         )}
 
                     </div>
 
-
-                    {/* CURRENT TICKET */}
-
-                    <div className="
-                        grid
-                        grid-cols-1
-                        md:grid-cols-2
-                        gap-6
-                        mb-8
-                    ">
+                )}
 
 
-                        <div className="
-                            bg-gradient-to-br
-                            from-purple-600
-                            to-indigo-700
-                            rounded-3xl
-                            p-10
-                            text-center
-                            shadow-2xl
-                        ">
+                {/* =================================================
+                    WAITING QUEUE
+                ================================================= */}
 
-                            <p className="
-                                text-purple-100
-                                uppercase
-                                tracking-widest
-                                text-sm
-                            ">
-                                Current Ticket
+                <section className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-7">
+
+                    <div className="flex items-center justify-between mb-6">
+
+                        <div>
+
+                            <h2 className="text-xl font-bold">
+                                Waiting Queue
+                            </h2>
+
+                            <p className="text-sm text-gray-500 mt-1">
+                                Customers waiting for service
                             </p>
-
-
-                            <div className="
-                                text-7xl
-                                md:text-8xl
-                                font-black
-                                mt-6
-                            ">
-
-                                {
-                                    queue.currentTicketNumber
-                                    ??
-                                    queue.currentTicket
-                                    ??
-                                    "-"
-                                }
-
-                            </div>
 
                         </div>
 
 
-                        {/* STATUS */}
-
-                        <div className="
-                            bg-[#11131a]
-                            border
-                            border-gray-800
-                            rounded-3xl
-                            p-10
-                            text-center
-                        ">
-
-                            <p className="
-                                text-gray-400
-                                uppercase
-                                tracking-widest
-                                text-sm
-                            ">
-                                Queue Status
-                            </p>
-
-
-                            <div className="
-                                text-4xl
-                                md:text-5xl
-                                font-bold
-                                mt-6
-                            ">
-
-                                {
-                                    queue.status
-                                    ??
-                                    queue.queueStatus
-                                    ??
-                                    "OPEN"
-                                }
-
-                            </div>
-
+                        <div className="min-w-12 h-12 px-3 rounded-2xl bg-fuchsia-500/10 text-fuchsia-400 flex items-center justify-center font-bold text-lg">
+                            {waitingTickets.length}
                         </div>
 
                     </div>
 
 
-                    {/* COUNTERS */}
+                    {waitingTickets.length === 0 ? (
 
-                    {counters.length > 0 && (
+                        <div className="py-12 text-center border border-dashed border-white/10 rounded-2xl">
 
-                        <div className="
-                            mb-8
-                        ">
+                            <div className="text-3xl mb-3">
+                                ✓
+                            </div>
 
-                            <h3 className="
-                                text-2xl
-                                font-bold
-                                mb-5
-                            ">
-                                Counters
-                            </h3>
+                            <p className="text-gray-400 font-medium">
+                                Queue is clear
+                            </p>
 
+                            <p className="text-sm text-gray-600 mt-1">
+                                No customers are waiting
+                            </p>
 
-                            <div className="
-                                grid
-                                grid-cols-1
-                                md:grid-cols-2
-                                lg:grid-cols-4
-                                gap-4
-                            ">
+                        </div>
 
-                                {counters.map(
-                                    counter => (
+                    ) : (
 
-                                        <div
-                                            key={
-                                                counter.id ??
-                                                counter.counterId
-                                            }
-                                            className="
-                                                bg-[#11131a]
-                                                border
-                                                border-gray-800
-                                                rounded-2xl
-                                                p-5
-                                            "
-                                        >
+                        <div className="flex flex-wrap gap-3">
 
-                                            <p className="
-                                                text-gray-400
-                                                text-sm
-                                            ">
-                                                Counter
-                                            </p>
+                            {waitingTickets.map(
+                                (ticket) => (
 
-                                            <p className="
-                                                text-2xl
-                                                font-bold
-                                                mt-1
-                                            ">
+                                    <div
+                                        key={ticket.id}
+                                        className="min-w-[72px] px-5 py-4 rounded-2xl bg-white/[0.04] border border-white/10 text-center hover:border-fuchsia-500/30 hover:bg-fuchsia-500/[0.04] transition-all"
+                                    >
 
-                                                {
-                                                    counter.counterNumber
-                                                    ??
-                                                    counter.number
-                                                    ??
-                                                    "-"
-                                                }
-
-                                            </p>
-
-                                            <p className="
-                                                text-sm
-                                                mt-2
-                                                text-gray-500
-                                            ">
-
-                                                {
-                                                    counter.status
-                                                    ??
-                                                    "UNKNOWN"
-                                                }
-
-                                            </p>
-
+                                        <div className="text-2xl font-bold">
+                                            {ticket.ticketNumber}
                                         </div>
 
-                                    )
-                                )}
+                                        <div className="text-[10px] text-gray-600 uppercase tracking-wider mt-1">
+                                            Waiting
+                                        </div>
 
-                            </div>
+                                    </div>
+
+                                )
+                            )}
 
                         </div>
 
                     )}
 
-
-                    {/* TICKETS */}
-
-                    {tickets.length > 0 && (
-
-                        <div>
-
-                            <h3 className="
-                                text-2xl
-                                font-bold
-                                mb-5
-                            ">
-                                Queue Tickets
-                            </h3>
+                </section>
 
 
-                            <div className="
-                                grid
-                                grid-cols-2
-                                md:grid-cols-4
-                                lg:grid-cols-6
-                                gap-4
-                            ">
+                {/* =================================================
+                    FOOTER
+                ================================================= */}
 
-                                {tickets.map(
-                                    ticket => (
+                <footer className="mt-6 flex items-center justify-between text-xs text-gray-600">
 
-                                        <div
-                                            key={
-                                                ticket.id ??
-                                                ticket.ticketId
-                                            }
-                                            className={`
-                                                rounded-2xl
-                                                p-5
-                                                text-center
-                                                border
-                                                ${
-                                                ticket.status ===
-                                                "SERVING"
-                                                    ? "bg-purple-600 border-purple-400"
-                                                    : "bg-[#11131a] border-gray-800"
-                                            }
-                                            `}
-                                        >
+                    <span>
+                        QFlow Real-Time Queue System
+                    </span>
 
-                                            <p className="
-                                                text-gray-400
-                                                text-xs
-                                                uppercase
-                                            ">
-                                                Ticket
-                                            </p>
+                    {lastEvent && (
 
-                                            <p className="
-                                                text-3xl
-                                                font-bold
-                                                mt-2
-                                            ">
-
-                                                {
-                                                    ticket.ticketNumber
-                                                    ??
-                                                    ticket.number
-                                                    ??
-                                                    "-"
-                                                }
-
-                                            </p>
-
-                                            <p className="
-                                                text-xs
-                                                mt-2
-                                            ">
-
-                                                {
-                                                    ticket.status
-                                                    ??
-                                                    "UNKNOWN"
-                                                }
-
-                                            </p>
-
-                                        </div>
-
-                                    )
-                                )}
-
-                            </div>
-
-                        </div>
+                        <span>
+                            Last event:{" "}
+                            <span className="text-gray-400">
+                                {lastEvent.eventType}
+                            </span>
+                        </span>
 
                     )}
 
-                </div>
+                </footer>
 
-            )}
+            </div>
 
         </div>
-
     );
-
 }

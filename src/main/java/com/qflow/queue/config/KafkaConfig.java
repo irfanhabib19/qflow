@@ -2,8 +2,10 @@ package com.qflow.queue.config;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +24,10 @@ import java.util.Map;
 @EnableKafka
 public class KafkaConfig {
 
+    // =========================================================
+    // Kafka Connection
+    // =========================================================
+
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
@@ -32,17 +38,66 @@ public class KafkaConfig {
     private String autoOffsetReset;
 
 
-    // ---------- PRODUCER ----------
+    // =========================================================
+    // Kafka Security
+    // =========================================================
 
-    @Bean
-    public ProducerFactory<String, String> producerFactory() {
+    @Value("${spring.kafka.properties.security.protocol:PLAINTEXT}")
+    private String securityProtocol;
+
+    @Value("${spring.kafka.properties.sasl.mechanism:PLAIN}")
+    private String saslMechanism;
+
+    @Value("${spring.kafka.properties.sasl.jaas.config:}")
+    private String saslJaasConfig;
+
+
+    // =========================================================
+    // Common Kafka Configuration
+    // =========================================================
+
+    private Map<String, Object> baseKafkaConfig() {
 
         Map<String, Object> config = new HashMap<>();
 
+        // Bootstrap servers
         config.put(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 bootstrapServers
         );
+
+        // Security protocol
+        config.put(
+                "security.protocol",
+                securityProtocol
+        );
+
+        // Configure SASL only when using SASL
+        if (!"PLAINTEXT".equalsIgnoreCase(securityProtocol)) {
+
+            config.put(
+                    SaslConfigs.SASL_MECHANISM,
+                    saslMechanism
+            );
+
+            config.put(
+                    SaslConfigs.SASL_JAAS_CONFIG,
+                    saslJaasConfig
+            );
+        }
+
+        return config;
+    }
+
+
+    // =========================================================
+    // PRODUCER
+    // =========================================================
+
+    @Bean
+    public ProducerFactory<String, String> producerFactory() {
+
+        Map<String, Object> config = baseKafkaConfig();
 
         config.put(
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
@@ -60,21 +115,19 @@ public class KafkaConfig {
 
     @Bean
     public KafkaTemplate<String, String> kafkaTemplate() {
+
         return new KafkaTemplate<>(producerFactory());
     }
 
 
-    // ---------- CONSUMER ----------
+    // =========================================================
+    // CONSUMER
+    // =========================================================
 
     @Bean
     public ConsumerFactory<String, String> consumerFactory() {
 
-        Map<String, Object> config = new HashMap<>();
-
-        config.put(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                bootstrapServers
-        );
+        Map<String, Object> config = baseKafkaConfig();
 
         config.put(
                 ConsumerConfig.GROUP_ID_CONFIG,
@@ -99,6 +152,10 @@ public class KafkaConfig {
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
+
+    // =========================================================
+    // Kafka Listener
+    // =========================================================
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, String>
