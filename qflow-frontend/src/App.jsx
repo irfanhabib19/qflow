@@ -79,7 +79,7 @@ export default function App() {
                 ================================== */}
 
                 <Route
-                    path="/ticket/:queueId/:ticketId"
+                    path="/queue/:queueId/ticket/:ticketId"
                     element={<TicketStatus />}
                 />
 

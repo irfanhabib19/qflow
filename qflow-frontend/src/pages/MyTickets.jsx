@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
+
 import {
     getMyTickets,
     cancelTicket
@@ -105,6 +106,7 @@ export default function MyTickets() {
                             ? data
                             : []
                     );
+
                 }
 
             } catch (err) {
@@ -120,6 +122,7 @@ export default function MyTickets() {
                         err.response?.data?.message ||
                         "Unable to load your tickets."
                     );
+
                 }
 
             } finally {
@@ -129,6 +132,7 @@ export default function MyTickets() {
                 }
 
             }
+
         };
 
 
@@ -258,6 +262,7 @@ export default function MyTickets() {
             setCancellingId(null);
 
         }
+
     };
 
 
@@ -292,6 +297,7 @@ export default function MyTickets() {
 
             </div>
         );
+
     }
 
 
@@ -330,6 +336,7 @@ export default function MyTickets() {
 
             </div>
         );
+
     }
 
 
@@ -367,6 +374,7 @@ export default function MyTickets() {
 
             </div>
         );
+
     }
 
 
@@ -399,6 +407,7 @@ export default function MyTickets() {
                     {/* Refresh indicator */}
 
                     {refreshing && (
+
                         <div className="flex items-center gap-2 text-sm text-gray-500">
 
                             <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-600 border-t-purple-400" />
@@ -406,6 +415,7 @@ export default function MyTickets() {
                             Updating...
 
                         </div>
+
                     )}
 
                 </div>
@@ -434,6 +444,7 @@ export default function MyTickets() {
 
         </div>
     );
+
 }
 
 
@@ -467,6 +478,7 @@ function TicketCard({
 
 
     return (
+
         <div className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
 
             <div className="flex items-start justify-between gap-4">
@@ -526,6 +538,7 @@ function TicketCard({
 
 
                 {ticket.position != null && (
+
                     <div className="flex justify-between">
 
                         <span className="text-sm text-gray-500">
@@ -537,6 +550,7 @@ function TicketCard({
                         </span>
 
                     </div>
+
                 )}
 
             </div>
@@ -545,7 +559,7 @@ function TicketCard({
             <div className="mt-6 flex gap-3">
 
                 <Link
-                    to={`/ticket/${ticket.id}`}
+                    to={`/queue/${ticket.queueId}/ticket/${ticket.id}`}
                     className="flex-1 rounded-lg border border-gray-700 px-4 py-2.5 text-center text-sm font-medium text-gray-300 hover:bg-gray-800"
                 >
                     View Status
@@ -553,6 +567,7 @@ function TicketCard({
 
 
                 {status === "WAITING" && (
+
                     <button
                         type="button"
                         disabled={cancelling}
@@ -563,10 +578,13 @@ function TicketCard({
                             ? "Cancelling..."
                             : "Cancel"}
                     </button>
+
                 )}
 
             </div>
 
         </div>
+
     );
+
 }
