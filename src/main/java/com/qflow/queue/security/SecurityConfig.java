@@ -3,24 +3,33 @@ package com.qflow.queue.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import org.springframework.http.HttpMethod;
+
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+
 import java.nio.charset.StandardCharsets;
+
 
 @Configuration
 @EnableMethodSecurity
@@ -90,7 +99,7 @@ public class SecurityConfig {
 
 
     // =========================================================
-    // JWT ROLE → SPRING SECURITY AUTHORITY
+    // JWT ROLE -> SPRING SECURITY AUTHORITY
     // =========================================================
 
     @Bean
@@ -99,9 +108,13 @@ public class SecurityConfig {
         JwtGrantedAuthoritiesConverter authoritiesConverter =
                 new JwtGrantedAuthoritiesConverter();
 
-        authoritiesConverter.setAuthoritiesClaimName("role");
+        authoritiesConverter.setAuthoritiesClaimName(
+                "role"
+        );
 
-        authoritiesConverter.setAuthorityPrefix("ROLE_");
+        authoritiesConverter.setAuthorityPrefix(
+                "ROLE_"
+        );
 
         JwtAuthenticationConverter converter =
                 new JwtAuthenticationConverter();
@@ -126,23 +139,25 @@ public class SecurityConfig {
 
         http
 
-                // -------------------------------------------------
+                // =================================================
                 // CORS
-                // -------------------------------------------------
+                // =================================================
 
                 .cors(cors -> {})
 
 
-                // -------------------------------------------------
+                // =================================================
                 // CSRF
-                // -------------------------------------------------
+                // =================================================
 
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf ->
+                        csrf.disable()
+                )
 
 
-                // -------------------------------------------------
-                // STATELESS SESSION
-                // -------------------------------------------------
+                // =================================================
+                // STATELESS
+                // =================================================
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -151,15 +166,15 @@ public class SecurityConfig {
                 )
 
 
-                // -------------------------------------------------
+                // =================================================
                 // AUTHORIZATION
-                // -------------------------------------------------
+                // =================================================
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // ==============================
-                        // PUBLIC AUTH ENDPOINTS
-                        // ==============================
+                        // -----------------------------------------
+                        // PUBLIC AUTH
+                        // -----------------------------------------
 
                         .requestMatchers(
                                 "/api/auth/register",
@@ -167,65 +182,106 @@ public class SecurityConfig {
                         ).permitAll()
 
 
-                        // ==============================
+                        // -----------------------------------------
                         // PUBLIC WEBSOCKET
-                        // ==============================
+                        // -----------------------------------------
 
                         .requestMatchers(
                                 "/ws/**"
                         ).permitAll()
 
 
-                        // ==============================
-                        // PUBLIC QUEUE BROWSING
-                        // ==============================
+                        // -----------------------------------------
+                        // GUEST CAN VIEW QUEUES
+                        // -----------------------------------------
 
                         .requestMatchers(
-                                "/api/queues",
+                                HttpMethod.GET,
+                                "/api/queues"
+                        ).permitAll()
+
+
+                        .requestMatchers(
+                                HttpMethod.GET,
                                 "/api/queues/*"
                         ).permitAll()
 
 
-                        // ==============================
-                        // GUEST QUEUE ACCESS
-                        // ==============================
+                        // -----------------------------------------
+                        // GUEST CAN VIEW TICKET LIST
+                        // -----------------------------------------
 
                         .requestMatchers(
-                                "/api/queues/*/join",
-                                "/api/queues/*/tickets/**"
+                                HttpMethod.GET,
+                                "/api/queues/*/tickets"
                         ).permitAll()
 
 
-                        // ==============================
-                        // ADMIN ONLY
-                        // ==============================
+                        // -----------------------------------------
+                        // JOIN QUEUE
+                        // LOGIN REQUIRED
+                        // -----------------------------------------
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/queues/*/join"
+                        ).authenticated()
+
+
+                        // -----------------------------------------
+                        // GET SINGLE TICKET
+                        // LOGIN REQUIRED
+                        // -----------------------------------------
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/queues/*/tickets/*"
+                        ).authenticated()
+
+
+                        // -----------------------------------------
+                        // CANCEL TICKET
+                        // LOGIN REQUIRED
+                        // -----------------------------------------
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/queues/*/tickets/*/cancel"
+                        ).authenticated()
+
+
+                        // -----------------------------------------
+                        // ADMIN
+                        // -----------------------------------------
 
                         .requestMatchers(
                                 "/api/admin/**"
                         ).hasRole("ADMIN")
 
 
-                        // ==============================
+                        // -----------------------------------------
                         // EVERYTHING ELSE
-                        // ==============================
+                        // -----------------------------------------
 
                         .anyRequest()
                         .authenticated()
                 )
 
 
-                // -------------------------------------------------
+                // =================================================
                 // JWT RESOURCE SERVER
-                // -------------------------------------------------
+                // =================================================
 
                 .oauth2ResourceServer(
                         oauth2 -> oauth2
-                                .jwt(jwt ->
-                                        jwt.jwtAuthenticationConverter(
-                                                jwtAuthenticationConverter
-                                        )
+                                .jwt(
+                                        jwt -> jwt
+                                                .jwtAuthenticationConverter(
+                                                        jwtAuthenticationConverter
+                                                )
                                 )
                 );
+
 
         return http.build();
     }
