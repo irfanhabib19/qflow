@@ -17,7 +17,7 @@ public class CorsConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
+        configuration.setAllowedOriginPatterns(List.of(
                 "https://qflow-pearl-two.vercel.app",
                 "http://localhost:5173"
         ));
@@ -31,9 +31,7 @@ public class CorsConfig {
                 "OPTIONS"
         ));
 
-        configuration.setAllowedHeaders(List.of(
-                "*"
-        ));
+        configuration.setAllowedHeaders(List.of("*"));
 
         configuration.setExposedHeaders(List.of(
                 "Authorization",
