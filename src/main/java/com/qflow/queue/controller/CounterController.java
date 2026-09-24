@@ -13,9 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/queues/{queueId}/counters")
-@CrossOrigin(
-        origins = "http://localhost:5173"
-)
 public class CounterController {
 
     private final CounterService counterService;
@@ -27,8 +24,7 @@ public class CounterController {
     public CounterController(
             CounterService counterService) {
 
-        this.counterService =
-                counterService;
+        this.counterService = counterService;
     }
 
     // ==========================================
@@ -145,7 +141,8 @@ public class CounterController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{counterId}")
-    public ResponseEntity<Void> deleteCounter(
+    public ResponseEntity<Void>
+    deleteCounter(
 
             @PathVariable Long queueId,
 
@@ -156,7 +153,8 @@ public class CounterController {
                 counterId
         );
 
-        return ResponseEntity.noContent()
+        return ResponseEntity
+                .noContent()
                 .build();
     }
 }

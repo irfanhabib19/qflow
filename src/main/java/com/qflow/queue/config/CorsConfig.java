@@ -5,11 +5,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
 @Configuration
 public class CorsConfig {
+
+    private static final String FRONTEND_URL =
+            "https://qflow-pearl-two.vercel.app";
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -17,13 +21,11 @@ public class CorsConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-        // Allowed frontend origins
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "https://qflow-pearl-two.vercel.app"
+                FRONTEND_URL,
+                "http://localhost:5173"
         ));
 
-        // HTTP methods
         configuration.setAllowedMethods(List.of(
                 "GET",
                 "POST",
@@ -33,25 +35,15 @@ public class CorsConfig {
                 "OPTIONS"
         ));
 
-        // Request headers
-        configuration.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin",
-                "X-Requested-With"
-        ));
+        configuration.setAllowedHeaders(List.of("*"));
 
-        // Response headers that browser can access
         configuration.setExposedHeaders(List.of(
                 "Authorization",
                 "Content-Type"
         ));
 
-        // We are using Bearer JWT authentication.
         configuration.setAllowCredentials(false);
 
-        // Cache preflight response
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
@@ -63,5 +55,12 @@ public class CorsConfig {
         );
 
         return source;
+    }
+
+    @Bean
+    public CorsFilter corsFilter(
+            CorsConfigurationSource corsConfigurationSource) {
+
+        return new CorsFilter(corsConfigurationSource);
     }
 }
