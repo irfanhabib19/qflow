@@ -18,6 +18,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -31,18 +32,18 @@ public class SecurityConfig {
     @Value("${qflow.jwt.secret}")
     private String jwtSecret;
 
-    // =========================================================
+    // ==========================================
     // PASSWORD ENCODER
-    // =========================================================
+    // ==========================================
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // =========================================================
+    // ==========================================
     // JWT SECRET KEY
-    // =========================================================
+    // ==========================================
 
     @Bean
     public SecretKey jwtSecretKey() {
@@ -56,14 +57,13 @@ public class SecurityConfig {
         );
     }
 
-    // =========================================================
+    // ==========================================
     // JWT ENCODER
-    // =========================================================
+    // ==========================================
 
     @Bean
     public JwtEncoder jwtEncoder(
-            SecretKey jwtSecretKey
-    ) {
+            SecretKey jwtSecretKey) {
 
         return NimbusJwtEncoder
                 .withSecretKey(jwtSecretKey)
@@ -71,14 +71,13 @@ public class SecurityConfig {
                 .build();
     }
 
-    // =========================================================
+    // ==========================================
     // JWT DECODER
-    // =========================================================
+    // ==========================================
 
     @Bean
     public JwtDecoder jwtDecoder(
-            SecretKey jwtSecretKey
-    ) {
+            SecretKey jwtSecretKey) {
 
         return NimbusJwtDecoder
                 .withSecretKey(jwtSecretKey)
@@ -86,9 +85,9 @@ public class SecurityConfig {
                 .build();
     }
 
-    // =========================================================
-    // JWT ROLE CONVERTER
-    // =========================================================
+    // ==========================================
+    // JWT AUTHORITY CONVERTER
+    // ==========================================
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
@@ -110,33 +109,40 @@ public class SecurityConfig {
         return converter;
     }
 
-    // =========================================================
+    // ==========================================
     // SECURITY FILTER CHAIN
-    // =========================================================
+    // ==========================================
 
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
+            CorsConfigurationSource corsConfigurationSource,
             JwtAuthenticationConverter jwtAuthenticationConverter
     ) throws Exception {
 
         http
 
-                // -------------------------------------------------
+                // ==================================
                 // CORS
-                // -------------------------------------------------
+                // ==================================
 
-                .cors(cors -> {})
+                .cors(cors ->
+                        cors.configurationSource(
+                                corsConfigurationSource
+                        )
+                )
 
-                // -------------------------------------------------
+                // ==================================
                 // CSRF
-                // -------------------------------------------------
+                // ==================================
 
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf ->
+                        csrf.disable()
+                )
 
-                // -------------------------------------------------
-                // STATELESS JWT
-                // -------------------------------------------------
+                // ==================================
+                // SESSION
+                // ==================================
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -144,30 +150,42 @@ public class SecurityConfig {
                         )
                 )
 
-                // -------------------------------------------------
+                // ==================================
                 // AUTHORIZATION
-                // -------------------------------------------------
+                // ==================================
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // CORS preflight
+                        // --------------------------
+                        // CORS PREFLIGHT
+                        // --------------------------
+
                         .requestMatchers(
                                 HttpMethod.OPTIONS,
                                 "/**"
                         ).permitAll()
 
-                        // Authentication
+                        // --------------------------
+                        // AUTH
+                        // --------------------------
+
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login"
                         ).permitAll()
 
-                        // WebSocket
+                        // --------------------------
+                        // WEBSOCKET
+                        // --------------------------
+
                         .requestMatchers(
                                 "/ws/**"
                         ).permitAll()
 
-                        // Public queue GET APIs
+                        // --------------------------
+                        // PUBLIC QUEUES
+                        // --------------------------
+
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/queues"
@@ -183,7 +201,10 @@ public class SecurityConfig {
                                 "/api/queues/*/tickets"
                         ).permitAll()
 
-                        // User queue actions
+                        // --------------------------
+                        // USER QUEUE OPERATIONS
+                        // --------------------------
+
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/queues/*/join"
@@ -199,24 +220,30 @@ public class SecurityConfig {
                                 "/api/queues/*/tickets/*/cancel"
                         ).authenticated()
 
-                        // Admin
+                        // --------------------------
+                        // ADMIN
+                        // --------------------------
+
                         .requestMatchers(
                                 "/api/admin/**"
                         ).hasRole("ADMIN")
 
-                        // Everything else
+                        // --------------------------
+                        // EVERYTHING ELSE
+                        // --------------------------
+
                         .anyRequest().authenticated()
                 )
 
-                // -------------------------------------------------
+                // ==================================
                 // JWT RESOURCE SERVER
-                // -------------------------------------------------
+                // ==================================
 
                 .oauth2ResourceServer(
-                        oauth2 -> oauth2
-                                .jwt(
-                                        jwt -> jwt
-                                                .jwtAuthenticationConverter(
+                        oauth2 ->
+                                oauth2.jwt(
+                                        jwt ->
+                                                jwt.jwtAuthenticationConverter(
                                                         jwtAuthenticationConverter
                                                 )
                                 )

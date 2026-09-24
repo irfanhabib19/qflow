@@ -5,15 +5,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
 @Configuration
 public class CorsConfig {
-
-    private static final String FRONTEND_URL =
-            "https://qflow-pearl-two.vercel.app";
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -22,7 +18,7 @@ public class CorsConfig {
                 new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of(
-                FRONTEND_URL,
+                "https://qflow-pearl-two.vercel.app",
                 "http://localhost:5173"
         ));
 
@@ -35,7 +31,9 @@ public class CorsConfig {
                 "OPTIONS"
         ));
 
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(List.of(
+                "*"
+        ));
 
         configuration.setExposedHeaders(List.of(
                 "Authorization",
@@ -55,12 +53,5 @@ public class CorsConfig {
         );
 
         return source;
-    }
-
-    @Bean
-    public CorsFilter corsFilter(
-            CorsConfigurationSource corsConfigurationSource) {
-
-        return new CorsFilter(corsConfigurationSource);
     }
 }
