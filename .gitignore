@@ -76,3 +76,13 @@ pnpm-debug.log*
 # =========================
 .DS_Store
 Thumbs.db
+# Maven build
+target/
+
+# Spring Boot build artifacts
+BOOT-INF/
+*.jar
+*.jar.original
+
+# Environment / secrets
+.env
