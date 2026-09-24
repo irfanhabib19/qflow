@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import api from "../services/api";
-import { createWebSocketClient } from "../services/websocket";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState
+} from "react";
 
+import api from "../services/api";
+import { createWebSocketClient } from "../services/webSocket";
 
 // ============================================================
 // CONFIGURATION
 // ============================================================
 
 const QUEUE_ID = 1;
-
 
 // ============================================================
 // HELPERS
@@ -18,16 +22,17 @@ const QUEUE_ID = 1;
  * Convert different possible API response shapes into an array.
  *
  * Supports:
+ *
  * [
- *   ...
+ *     ...
  * ]
  *
  * {
- *   data: [...]
+ *     data: [...]
  * }
  *
  * {
- *   content: [...]
+ *     content: [...]
  * }
  */
 function toArray(value) {
@@ -45,7 +50,6 @@ function toArray(value) {
 
     return [];
 }
-
 
 /**
  * Extract an ID from a counter object.
@@ -75,7 +79,6 @@ function getCounterId(counter) {
         null
     );
 }
-
 
 /**
  * Extract counter ID from a ticket.
@@ -121,7 +124,6 @@ function getTicketCounterId(ticket) {
     return null;
 }
 
-
 /**
  * Extract counter ID from a WebSocket event.
  */
@@ -149,7 +151,6 @@ function getEventCounterId(event) {
     return null;
 }
 
-
 /**
  * Extract ticket number from an event.
  */
@@ -163,7 +164,6 @@ function getEventTicketNumber(event) {
     );
 }
 
-
 /**
  * Extract ticket ID from an event.
  */
@@ -176,7 +176,6 @@ function getEventTicketId(event) {
     );
 }
 
-
 /**
  * Determine whether a ticket is serving.
  */
@@ -187,7 +186,6 @@ function isServing(ticket) {
     );
 }
 
-
 /**
  * Determine whether a ticket is waiting.
  */
@@ -197,7 +195,6 @@ function isWaiting(ticket) {
         "WAITING"
     );
 }
-
 
 /**
  * Determine whether a counter is available.
@@ -232,7 +229,6 @@ function isCounterAvailable(counter) {
     return true;
 }
 
-
 // ============================================================
 // COMPONENT
 // ============================================================
@@ -253,9 +249,9 @@ export default function DisplayBoard() {
      * Structure:
      *
      * {
-     *   1: ticket,
-     *   2: ticket,
-     *   3: ticket
+     *     1: ticket,
+     *     2: ticket,
+     *     3: ticket
      * }
      */
     const [counterTickets, setCounterTickets] =
@@ -275,7 +271,6 @@ export default function DisplayBoard() {
 
     const [changingCounter, setChangingCounter] =
         useState(null);
-
 
     // ========================================================
     // FETCH QUEUE
@@ -306,7 +301,6 @@ export default function DisplayBoard() {
         }
 
     }, []);
-
 
     // ========================================================
     // FETCH COUNTERS
@@ -342,7 +336,6 @@ export default function DisplayBoard() {
 
     }, []);
 
-
     // ========================================================
     // FETCH TICKETS
     // ========================================================
@@ -366,7 +359,6 @@ export default function DisplayBoard() {
 
             setTickets(data);
 
-
             // =================================================
             // BUILD COUNTER -> SERVING TICKET MAP
             // =================================================
@@ -383,6 +375,7 @@ export default function DisplayBoard() {
                     getTicketCounterId(ticket);
 
                 if (counterId == null) {
+
                     console.warn(
                         "⚠️ SERVING ticket has no counter:",
                         ticket
@@ -396,7 +389,6 @@ export default function DisplayBoard() {
                     ] = ticket;
 
             });
-
 
             console.log(
                 "📊 Counter -> Serving ticket:",
@@ -418,7 +410,6 @@ export default function DisplayBoard() {
 
     }, []);
 
-
     // ========================================================
     // INITIAL DATA
     // ========================================================
@@ -436,7 +427,7 @@ export default function DisplayBoard() {
                 await Promise.all([
                     fetchQueue(),
                     fetchCounters(),
-                    fetchTickets(),
+                    fetchTickets()
                 ]);
 
             } finally {
@@ -458,9 +449,8 @@ export default function DisplayBoard() {
     }, [
         fetchQueue,
         fetchCounters,
-        fetchTickets,
+        fetchTickets
     ]);
-
 
     // ========================================================
     // WEBSOCKET
@@ -490,7 +480,6 @@ export default function DisplayBoard() {
 
                     setLastEvent(event);
 
-
                     // ========================================
                     // TICKET CALLED
                     // ========================================
@@ -515,16 +504,14 @@ export default function DisplayBoard() {
                                 event
                             );
 
-
                         console.log(
                             "📢 TICKET CALLED",
                             {
                                 counterId,
                                 ticketId,
-                                ticketNumber,
+                                ticketNumber
                             }
                         );
-
 
                         // ====================================
                         // If backend event contains
@@ -538,7 +525,6 @@ export default function DisplayBoard() {
                                     counterId
                                 );
 
-
                             // ------------------------------
                             // Animate this counter
                             // ------------------------------
@@ -546,7 +532,6 @@ export default function DisplayBoard() {
                             setChangingCounter(
                                 counterKey
                             );
-
 
                             // ------------------------------
                             // Update ONLY this counter
@@ -569,13 +554,12 @@ export default function DisplayBoard() {
                                             "SERVING",
 
                                         counterId:
-                                        counterId,
+                                        counterId
 
-                                    },
+                                    }
 
                                 })
                             );
-
 
                             // ------------------------------
                             // Announcement
@@ -587,10 +571,9 @@ export default function DisplayBoard() {
                                 ticketNumber,
 
                                 counterId:
-                                counterId,
+                                counterId
 
                             });
-
 
                             // ------------------------------
                             // Stop animation
@@ -603,7 +586,6 @@ export default function DisplayBoard() {
                                 );
 
                             }, 700);
-
 
                             // ------------------------------
                             // Hide announcement
@@ -619,7 +601,6 @@ export default function DisplayBoard() {
 
                         }
 
-
                         // ====================================
                         // Synchronize with backend
                         // ====================================
@@ -631,7 +612,6 @@ export default function DisplayBoard() {
                         await fetchQueue();
 
                     }
-
 
                     // ========================================
                     // TICKET SERVED
@@ -657,16 +637,14 @@ export default function DisplayBoard() {
                                 event
                             );
 
-
                         console.log(
                             "✅ TICKET SERVED",
                             {
                                 counterId,
                                 ticketId,
-                                ticketNumber,
+                                ticketNumber
                             }
                         );
-
 
                         // ====================================
                         // If event has counter ID,
@@ -684,7 +662,7 @@ export default function DisplayBoard() {
                                 (previous) => {
 
                                     const updated = {
-                                        ...previous,
+                                        ...previous
                                     };
 
                                     delete updated[
@@ -714,7 +692,7 @@ export default function DisplayBoard() {
                                     ).forEach(
                                         ([
                                              key,
-                                             ticket,
+                                             ticket
                                          ]) => {
 
                                             if (
@@ -743,7 +721,6 @@ export default function DisplayBoard() {
 
                         }
 
-
                         // ====================================
                         // Refresh actual backend state
                         // ====================================
@@ -758,7 +735,6 @@ export default function DisplayBoard() {
 
                 },
 
-
                 // ============================================
                 // CONNECTED
                 // ============================================
@@ -772,7 +748,6 @@ export default function DisplayBoard() {
                     setWsConnected(true);
 
                 },
-
 
                 // ============================================
                 // ERROR
@@ -790,7 +765,6 @@ export default function DisplayBoard() {
                 }
 
             );
-
 
         // ====================================================
         // CLEANUP
@@ -811,9 +785,8 @@ export default function DisplayBoard() {
     }, [
         fetchQueue,
         fetchCounters,
-        fetchTickets,
+        fetchTickets
     ]);
-
 
     // ========================================================
     // WAITING TICKETS
@@ -834,7 +807,6 @@ export default function DisplayBoard() {
             );
 
     }, [tickets]);
-
 
     // ========================================================
     // COUNTER DISPLAY DATA
@@ -865,7 +837,7 @@ export default function DisplayBoard() {
                 available:
                     isCounterAvailable(
                         counter
-                    ),
+                    )
 
             };
 
@@ -873,9 +845,8 @@ export default function DisplayBoard() {
 
     }, [
         counters,
-        counterTickets,
+        counterTickets
     ]);
-
 
     // ========================================================
     // LOADING
@@ -884,6 +855,7 @@ export default function DisplayBoard() {
     if (loading) {
 
         return (
+
             <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
 
                 <div className="text-center">
@@ -897,18 +869,18 @@ export default function DisplayBoard() {
                 </div>
 
             </div>
+
         );
 
     }
-
 
     // ========================================================
     // UI
     // ========================================================
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white overflow-hidden">
 
+        <div className="min-h-screen bg-[#050505] text-white overflow-hidden">
 
             {/* =================================================
                 BACKGROUND
@@ -921,7 +893,6 @@ export default function DisplayBoard() {
                 <div className="absolute top-[40%] -right-40 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[140px]" />
 
             </div>
-
 
             {/* =================================================
                 ANNOUNCEMENT
@@ -954,13 +925,11 @@ export default function DisplayBoard() {
 
             )}
 
-
             {/* =================================================
                 MAIN
             ================================================= */}
 
             <div className="relative z-10 max-w-[1700px] mx-auto px-6 py-7">
-
 
                 {/* =================================================
                     HEADER
@@ -994,7 +963,6 @@ export default function DisplayBoard() {
 
                     </div>
 
-
                     {/* QUEUE INFO */}
 
                     <div className="flex items-center gap-5">
@@ -1011,7 +979,6 @@ export default function DisplayBoard() {
                             </p>
 
                         </div>
-
 
                         {/* LIVE */}
 
@@ -1032,9 +999,11 @@ export default function DisplayBoard() {
                             />
 
                             <span className="text-xs font-semibold">
+
                                 {wsConnected
                                     ? "LIVE"
                                     : "OFFLINE"}
+
                             </span>
 
                         </div>
@@ -1042,7 +1011,6 @@ export default function DisplayBoard() {
                     </div>
 
                 </header>
-
 
                 {/* =================================================
                     SECTION TITLE
@@ -1065,7 +1033,6 @@ export default function DisplayBoard() {
                     </div>
 
                 </div>
-
 
                 {/* =================================================
                     COUNTERS
@@ -1129,9 +1096,7 @@ export default function DisplayBoard() {
 
                                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-fuchsia-500 to-purple-500" />
 
-
                                         <div className="p-7">
-
 
                                             {/* COUNTER HEADER */}
 
@@ -1149,7 +1114,6 @@ export default function DisplayBoard() {
                                                     </h3>
 
                                                 </div>
-
 
                                                 <div
                                                     className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap ${
@@ -1170,7 +1134,6 @@ export default function DisplayBoard() {
                                                 </div>
 
                                             </div>
-
 
                                             {/* TICKET */}
 
@@ -1237,7 +1200,6 @@ export default function DisplayBoard() {
 
                 )}
 
-
                 {/* =================================================
                     WAITING QUEUE
                 ================================================= */}
@@ -1258,13 +1220,11 @@ export default function DisplayBoard() {
 
                         </div>
 
-
                         <div className="min-w-12 h-12 px-3 rounded-2xl bg-fuchsia-500/10 text-fuchsia-400 flex items-center justify-center font-bold text-lg">
                             {waitingTickets.length}
                         </div>
 
                     </div>
-
 
                     {waitingTickets.length === 0 ? (
 
@@ -1315,7 +1275,6 @@ export default function DisplayBoard() {
 
                 </section>
 
-
                 {/* =================================================
                     FOOTER
                 ================================================= */}
@@ -1342,5 +1301,6 @@ export default function DisplayBoard() {
             </div>
 
         </div>
+
     );
 }
