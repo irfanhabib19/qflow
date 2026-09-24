@@ -3,33 +3,25 @@ package com.qflow.queue.security;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 import org.springframework.http.HttpMethod;
-
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
-
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-
 import java.nio.charset.StandardCharsets;
-
 
 @Configuration
 @EnableMethodSecurity
@@ -39,17 +31,14 @@ public class SecurityConfig {
     @Value("${qflow.jwt.secret}")
     private String jwtSecret;
 
-
     // =========================================================
     // PASSWORD ENCODER
     // =========================================================
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-
         return new BCryptPasswordEncoder();
     }
-
 
     // =========================================================
     // JWT SECRET KEY
@@ -67,14 +56,14 @@ public class SecurityConfig {
         );
     }
 
-
     // =========================================================
     // JWT ENCODER
     // =========================================================
 
     @Bean
     public JwtEncoder jwtEncoder(
-            SecretKey jwtSecretKey) {
+            SecretKey jwtSecretKey
+    ) {
 
         return NimbusJwtEncoder
                 .withSecretKey(jwtSecretKey)
@@ -82,14 +71,14 @@ public class SecurityConfig {
                 .build();
     }
 
-
     // =========================================================
     // JWT DECODER
     // =========================================================
 
     @Bean
     public JwtDecoder jwtDecoder(
-            SecretKey jwtSecretKey) {
+            SecretKey jwtSecretKey
+    ) {
 
         return NimbusJwtDecoder
                 .withSecretKey(jwtSecretKey)
@@ -97,9 +86,8 @@ public class SecurityConfig {
                 .build();
     }
 
-
     // =========================================================
-    // JWT ROLE -> SPRING SECURITY AUTHORITY
+    // JWT ROLE CONVERTER
     // =========================================================
 
     @Bean
@@ -108,13 +96,9 @@ public class SecurityConfig {
         JwtGrantedAuthoritiesConverter authoritiesConverter =
                 new JwtGrantedAuthoritiesConverter();
 
-        authoritiesConverter.setAuthoritiesClaimName(
-                "role"
-        );
+        authoritiesConverter.setAuthoritiesClaimName("role");
 
-        authoritiesConverter.setAuthorityPrefix(
-                "ROLE_"
-        );
+        authoritiesConverter.setAuthorityPrefix("ROLE_");
 
         JwtAuthenticationConverter converter =
                 new JwtAuthenticationConverter();
@@ -125,7 +109,6 @@ public class SecurityConfig {
 
         return converter;
     }
-
 
     // =========================================================
     // SECURITY FILTER CHAIN
@@ -139,25 +122,21 @@ public class SecurityConfig {
 
         http
 
-                // =================================================
+                // -------------------------------------------------
                 // CORS
-                // =================================================
+                // -------------------------------------------------
 
                 .cors(cors -> {})
 
-
-                // =================================================
+                // -------------------------------------------------
                 // CSRF
-                // =================================================
+                // -------------------------------------------------
 
-                .csrf(csrf ->
-                        csrf.disable()
-                )
+                .csrf(csrf -> csrf.disable())
 
-
-                // =================================================
-                // STATELESS
-                // =================================================
+                // -------------------------------------------------
+                // STATELESS JWT
+                // -------------------------------------------------
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -165,112 +144,73 @@ public class SecurityConfig {
                         )
                 )
 
-
-                // =================================================
+                // -------------------------------------------------
                 // AUTHORIZATION
-                // =================================================
+                // -------------------------------------------------
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // -----------------------------------------
-                        // PUBLIC AUTH
-                        // -----------------------------------------
+                        // CORS preflight
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**"
+                        ).permitAll()
 
+                        // Authentication
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login"
                         ).permitAll()
 
-
-                        // -----------------------------------------
-                        // PUBLIC WEBSOCKET
-                        // -----------------------------------------
-
+                        // WebSocket
                         .requestMatchers(
                                 "/ws/**"
                         ).permitAll()
 
-
-                        // -----------------------------------------
-                        // GUEST CAN VIEW QUEUES
-                        // -----------------------------------------
-
+                        // Public queue GET APIs
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/queues"
                         ).permitAll()
-
 
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/queues/*"
                         ).permitAll()
 
-
-                        // -----------------------------------------
-                        // GUEST CAN VIEW TICKET LIST
-                        // -----------------------------------------
-
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/queues/*/tickets"
                         ).permitAll()
 
-
-                        // -----------------------------------------
-                        // JOIN QUEUE
-                        // LOGIN REQUIRED
-                        // -----------------------------------------
-
+                        // User queue actions
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/queues/*/join"
                         ).authenticated()
-
-
-                        // -----------------------------------------
-                        // GET SINGLE TICKET
-                        // LOGIN REQUIRED
-                        // -----------------------------------------
 
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/queues/*/tickets/*"
                         ).authenticated()
 
-
-                        // -----------------------------------------
-                        // CANCEL TICKET
-                        // LOGIN REQUIRED
-                        // -----------------------------------------
-
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/queues/*/tickets/*/cancel"
                         ).authenticated()
 
-
-                        // -----------------------------------------
-                        // ADMIN
-                        // -----------------------------------------
-
+                        // Admin
                         .requestMatchers(
                                 "/api/admin/**"
                         ).hasRole("ADMIN")
 
-
-                        // -----------------------------------------
-                        // EVERYTHING ELSE
-                        // -----------------------------------------
-
-                        .anyRequest()
-                        .authenticated()
+                        // Everything else
+                        .anyRequest().authenticated()
                 )
 
-
-                // =================================================
+                // -------------------------------------------------
                 // JWT RESOURCE SERVER
-                // =================================================
+                // -------------------------------------------------
 
                 .oauth2ResourceServer(
                         oauth2 -> oauth2
@@ -281,7 +221,6 @@ public class SecurityConfig {
                                                 )
                                 )
                 );
-
 
         return http.build();
     }
