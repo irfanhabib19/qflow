@@ -13,41 +13,63 @@ import {
 } from "../services/authApi";
 
 
-// =========================================================
+// =====================================================
 // AUTH CONTEXT
-// =========================================================
+// =====================================================
 
-const AuthContext = createContext(null);
+const AuthContext =
+    createContext(null);
 
 
-// =========================================================
+// =====================================================
 // AUTH PROVIDER
-// =========================================================
+// =====================================================
 
 export function AuthProvider({ children }) {
 
-    const [user, setUser] = useState(null);
+    const [user, setUser] =
+        useState(null);
 
-    const [token, setToken] = useState(null);
+    const [token, setToken] =
+        useState(null);
 
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] =
+        useState(true);
 
 
     // =====================================================
-    // RESTORE LOGIN FROM LOCAL STORAGE
+    // RESTORE LOGIN
     // =====================================================
 
     useEffect(() => {
 
-        const storedToken = getToken();
-        const storedUser = getCurrentUser();
+        const storedToken =
+            getToken();
 
-        if (storedToken && storedUser) {
+        const storedUser =
+            getCurrentUser();
 
-            setToken(storedToken);
 
-            setUser(storedUser);
+        if (
+            storedToken &&
+            storedUser
+        ) {
+
+            setToken(
+                storedToken
+            );
+
+            setUser(
+                storedUser
+            );
+
+        } else {
+
+            setToken(null);
+
+            setUser(null);
         }
+
 
         setLoading(false);
 
@@ -69,23 +91,28 @@ export function AuthProvider({ children }) {
                 password
             );
 
-        /*
-         * authApi.login() already stores:
-         *
-         * qflow_token
-         * qflow_user
-         *
-         * in localStorage.
-         */
 
-        setToken(data.token);
+        setToken(
+            data.token
+        );
+
 
         setUser({
-            userId: data.userId,
-            name: data.name,
-            email: data.email,
-            role: data.role
+
+            userId:
+            data.userId,
+
+            name:
+            data.name,
+
+            email:
+            data.email,
+
+            role:
+            data.role
+
         });
+
 
         return data;
     };
@@ -97,7 +124,34 @@ export function AuthProvider({ children }) {
 
     const logout = () => {
 
+        // -----------------------------------------
+        // REMOVE ONLY AUTH DATA
+        // -----------------------------------------
+
         logoutApi();
+
+
+        // -----------------------------------------
+        // IMPORTANT:
+        // DO NOT REMOVE USER TICKET CACHE
+        // -----------------------------------------
+        //
+        // Ticket keys are user-specific:
+        //
+        // qflow-ticket-${userId}-${queueId}
+        //
+        // Therefore another user cannot use
+        // the previous user's ticket key.
+        //
+        // Keeping the key allows the same user
+        // to see their ticket after logging in again.
+        //
+        // -----------------------------------------
+
+
+        // -----------------------------------------
+        // CLEAR REACT AUTH STATE
+        // -----------------------------------------
 
         setToken(null);
 
@@ -106,15 +160,18 @@ export function AuthProvider({ children }) {
 
 
     // =====================================================
-    // AUTHENTICATION STATUS
+    // AUTHENTICATED
     // =====================================================
 
     const isAuthenticated =
-        Boolean(token && user);
+        Boolean(
+            token &&
+            user
+        );
 
 
     // =====================================================
-    // ADMIN STATUS
+    // ADMIN
     // =====================================================
 
     const isAdmin =
@@ -127,43 +184,52 @@ export function AuthProvider({ children }) {
 
     const value = {
 
-        // User information
         user,
 
-        // JWT
         token,
 
-        // Authentication state
         isAuthenticated,
 
-        // Authorization state
         isAdmin,
 
-        // Loading while restoring session
         loading,
 
-        // Actions
         login,
+
         logout
+
     };
 
 
+    // =====================================================
+    // PROVIDER
+    // =====================================================
+
     return (
-        <AuthContext.Provider value={value}>
+
+        <AuthContext.Provider
+            value={value}
+        >
+
             {children}
+
         </AuthContext.Provider>
+
     );
 }
 
 
-// =========================================================
-// useAuth HOOK
-// =========================================================
+// =====================================================
+// useAuth
+// =====================================================
 
 export function useAuth() {
 
     const context =
-        useContext(AuthContext);
+        useContext(
+            AuthContext
+        );
+
 
     if (!context) {
 
@@ -171,6 +237,7 @@ export function useAuth() {
             "useAuth must be used inside an AuthProvider"
         );
     }
+
 
     return context;
 }

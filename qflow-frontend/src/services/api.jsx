@@ -1,17 +1,31 @@
 import axios from "axios";
 
+// =====================================================
+// API CONFIGURATION
+// =====================================================
+//
+// Local:
+// VITE_API_URL=http://localhost:8080/api
+//
+// Production:
+// VITE_API_URL=https://qflow-ramd.onrender.com/api
+//
+
 const api = axios.create({
-    baseURL: "http://localhost:8080/api",
+    baseURL: import.meta.env.VITE_API_URL,
+    headers: {
+        "Content-Type": "application/json",
+    },
 });
 
-
-// ===============================
+// =====================================================
 // REQUEST INTERCEPTOR
-// ===============================
+// =====================================================
 
 api.interceptors.request.use(
     (config) => {
 
+        // Do not attach JWT to authentication requests
         const isAuthRequest =
             config.url === "/auth/login" ||
             config.url === "/auth/register";
@@ -35,10 +49,9 @@ api.interceptors.request.use(
     }
 );
 
-
-// ===============================
+// =====================================================
 // RESPONSE INTERCEPTOR
-// ===============================
+// =====================================================
 
 api.interceptors.response.use(
 
@@ -48,6 +61,7 @@ api.interceptors.response.use(
 
     (error) => {
 
+        // JWT expired / invalid
         if (error.response?.status === 401) {
 
             localStorage.removeItem("qflow_token");
@@ -60,9 +74,8 @@ api.interceptors.response.use(
     }
 );
 
-
-// ===============================
+// =====================================================
 // DEFAULT EXPORT
-// ===============================
+// =====================================================
 
 export default api;

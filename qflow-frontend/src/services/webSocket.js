@@ -1,6 +1,20 @@
 import { Client } from "@stomp/stompjs";
 
-const WS_URL = "ws://localhost:8080/ws";
+// =====================================================
+// WEBSOCKET CONFIGURATION
+// =====================================================
+//
+// Local:
+// VITE_WS_URL=ws://localhost:8080/ws
+//
+// Production:
+// VITE_WS_URL=wss://qflow-ramd.onrender.com/ws
+//
+
+const WS_URL =
+    import.meta.env.VITE_WS_URL ||
+    "ws://localhost:8080/ws";
+
 
 // =====================================================
 // QUEUE WEBSOCKET
@@ -13,8 +27,12 @@ export function createWebSocketClient(
     onConnect,
     onError
 ) {
+
     if (!queueId) {
-        console.error("❌ WebSocket queueId is missing");
+        console.error(
+            "❌ WebSocket queueId is missing"
+        );
+
         return null;
     }
 
@@ -24,41 +42,61 @@ export function createWebSocketClient(
     );
 
     const client = new Client({
+
+        // WebSocket URL
         brokerURL: WS_URL,
 
+        // Automatically reconnect
         reconnectDelay: 5000,
 
+        // Heartbeat
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
 
+        // STOMP debug logs
         debug: (message) => {
-            console.log("[STOMP]", message);
+            console.log(
+                "[STOMP]",
+                message
+            );
         },
 
+
+        // =================================================
+        // CONNECTED
+        // =================================================
+
         onConnect: () => {
+
             console.log(
                 "🟢 Queue WebSocket connected"
             );
 
-            const destination = `/topic/queue/${queueId}`;
+            const destination =
+                `/topic/queue/${queueId}`;
 
             console.log(
                 "📡 Subscribing to:",
                 destination
             );
 
+
+            // Subscribe to queue events
             client.subscribe(
                 destination,
                 (message) => {
+
                     try {
+
                         console.log(
                             "📨 Queue WebSocket message:",
                             message.body
                         );
 
-                        const event = JSON.parse(
-                            message.body
-                        );
+                        const event =
+                            JSON.parse(
+                                message.body
+                            );
 
                         console.log(
                             "📡 Queue event:",
@@ -70,6 +108,7 @@ export function createWebSocketClient(
                         }
 
                     } catch (error) {
+
                         console.error(
                             "❌ Event parsing failed:",
                             error
@@ -78,12 +117,19 @@ export function createWebSocketClient(
                 }
             );
 
+
             if (onConnect) {
                 onConnect();
             }
         },
 
+
+        // =================================================
+        // STOMP ERROR
+        // =================================================
+
         onStompError: (frame) => {
+
             console.error(
                 "❌ STOMP error:",
                 frame
@@ -94,7 +140,13 @@ export function createWebSocketClient(
             }
         },
 
+
+        // =================================================
+        // WEBSOCKET ERROR
+        // =================================================
+
         onWebSocketError: (error) => {
+
             console.error(
                 "❌ WebSocket error:",
                 error
@@ -105,7 +157,13 @@ export function createWebSocketClient(
             }
         },
 
+
+        // =================================================
+        // WEBSOCKET CLOSED
+        // =================================================
+
         onWebSocketClose: (event) => {
+
             console.warn(
                 "🔴 Queue WebSocket closed:",
                 event
@@ -113,10 +171,13 @@ export function createWebSocketClient(
         },
     });
 
+
+    // Start connection
     client.activate();
 
     return client;
 }
+
 
 
 // =====================================================
@@ -130,7 +191,9 @@ export function createUserWebSocketClient(
     onConnect,
     onError
 ) {
+
     if (!userId) {
+
         console.error(
             "❌ WebSocket userId is missing"
         );
@@ -144,18 +207,33 @@ export function createUserWebSocketClient(
     );
 
     const client = new Client({
+
+        // WebSocket URL
         brokerURL: WS_URL,
 
+        // Automatically reconnect
         reconnectDelay: 5000,
 
+        // Heartbeat
         heartbeatIncoming: 10000,
         heartbeatOutgoing: 10000,
 
+        // STOMP debug
         debug: (message) => {
-            console.log("[STOMP]", message);
+
+            console.log(
+                "[STOMP]",
+                message
+            );
         },
 
+
+        // =================================================
+        // CONNECTED
+        // =================================================
+
         onConnect: () => {
+
             console.log(
                 "🟢 User WebSocket connected"
             );
@@ -168,18 +246,23 @@ export function createUserWebSocketClient(
                 destination
             );
 
+
+            // Subscribe to user-specific events
             client.subscribe(
                 destination,
                 (message) => {
+
                     try {
+
                         console.log(
                             "📨 User WebSocket message:",
                             message.body
                         );
 
-                        const event = JSON.parse(
-                            message.body
-                        );
+                        const event =
+                            JSON.parse(
+                                message.body
+                            );
 
                         console.log(
                             "📡 User ticket event:",
@@ -191,6 +274,7 @@ export function createUserWebSocketClient(
                         }
 
                     } catch (error) {
+
                         console.error(
                             "❌ Event parsing failed:",
                             error
@@ -199,12 +283,19 @@ export function createUserWebSocketClient(
                 }
             );
 
+
             if (onConnect) {
                 onConnect();
             }
         },
 
+
+        // =================================================
+        // STOMP ERROR
+        // =================================================
+
         onStompError: (frame) => {
+
             console.error(
                 "❌ STOMP error:",
                 frame
@@ -215,7 +306,13 @@ export function createUserWebSocketClient(
             }
         },
 
+
+        // =================================================
+        // WEBSOCKET ERROR
+        // =================================================
+
         onWebSocketError: (error) => {
+
             console.error(
                 "❌ WebSocket error:",
                 error
@@ -226,7 +323,13 @@ export function createUserWebSocketClient(
             }
         },
 
+
+        // =================================================
+        // WEBSOCKET CLOSED
+        // =================================================
+
         onWebSocketClose: (event) => {
+
             console.warn(
                 "🔴 User WebSocket closed:",
                 event
@@ -234,6 +337,8 @@ export function createUserWebSocketClient(
         },
     });
 
+
+    // Start connection
     client.activate();
 
     return client;
